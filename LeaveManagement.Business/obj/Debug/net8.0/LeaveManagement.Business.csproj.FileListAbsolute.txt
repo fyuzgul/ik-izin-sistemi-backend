@@ -1,0 +1,17 @@
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\bin\Debug\net8.0\LeaveManagement.Business.deps.json
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\bin\Debug\net8.0\LeaveManagement.Business.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\bin\Debug\net8.0\LeaveManagement.Business.pdb
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\bin\Debug\net8.0\LeaveManagement.DataAccess.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\bin\Debug\net8.0\LeaveManagement.Entity.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\bin\Debug\net8.0\LeaveManagement.Entity.pdb
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\bin\Debug\net8.0\LeaveManagement.DataAccess.pdb
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.csproj.AssemblyReference.cache
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.AssemblyInfoInputs.cache
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.AssemblyInfo.cs
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.csproj.CoreCompileInputs.cache
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveMan.741BD578.Up2Date
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\refint\LeaveManagement.Business.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.pdb
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\ref\LeaveManagement.Business.dll

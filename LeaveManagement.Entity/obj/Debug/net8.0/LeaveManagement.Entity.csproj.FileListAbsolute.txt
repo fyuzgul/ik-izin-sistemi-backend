@@ -1,0 +1,12 @@
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\bin\Debug\net8.0\LeaveManagement.Entity.deps.json
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\bin\Debug\net8.0\LeaveManagement.Entity.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\bin\Debug\net8.0\LeaveManagement.Entity.pdb
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.csproj.AssemblyReference.cache
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.AssemblyInfoInputs.cache
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.AssemblyInfo.cs
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.csproj.CoreCompileInputs.cache
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\refint\LeaveManagement.Entity.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.pdb
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\ref\LeaveManagement.Entity.dll
