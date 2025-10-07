@@ -13,3 +13,4 @@ C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.DataAccess\obj
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.DataAccess\obj\Debug\net8.0\refint\LeaveManagement.DataAccess.dll
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.DataAccess\obj\Debug\net8.0\LeaveManagement.DataAccess.pdb
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.DataAccess\obj\Debug\net8.0\ref\LeaveManagement.DataAccess.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.DataAccess\obj\Debug\net8.0\LeaveManagement.DataAccess.sourcelink.json

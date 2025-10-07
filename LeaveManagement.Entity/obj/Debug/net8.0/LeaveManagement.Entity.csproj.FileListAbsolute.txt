@@ -10,3 +10,4 @@ C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Deb
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\refint\LeaveManagement.Entity.dll
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.pdb
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\ref\LeaveManagement.Entity.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Entity\obj\Debug\net8.0\LeaveManagement.Entity.sourcelink.json

@@ -22,6 +22,11 @@ namespace LeaveManagement.Entity
         [StringLength(50)]
         public string EmployeeNumber { get; set; } = string.Empty;
         
+        [StringLength(20)]
+        public string? PhoneNumber { get; set; }
+        
+        public DateTime HireDate { get; set; } = DateTime.UtcNow;
+        
         public int? DepartmentId { get; set; }
         public Department? Department { get; set; }
         

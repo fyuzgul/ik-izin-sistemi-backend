@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "wFwXym92x7E=",
+  "dgSpecHash": "yYEUvbOlW1k=",
   "success": true,
   "projectFilePath": "C:\\Users\\mfyuzgul\\Desktop\\ik-izin-sistemi\\backend\\LeaveManagement.Entity\\LeaveManagement.Entity.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\mfyuzgul\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\mfyuzgul\\.nuget\\packages\\microsoft.entityframeworkcore\\8.0.0\\microsoft.entityframeworkcore.8.0.0.nupkg.sha512",
     "C:\\Users\\mfyuzgul\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\8.0.0\\microsoft.entityframeworkcore.abstractions.8.0.0.nupkg.sha512",
     "C:\\Users\\mfyuzgul\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\8.0.0\\microsoft.entityframeworkcore.analyzers.8.0.0.nupkg.sha512",

@@ -15,3 +15,4 @@ C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\D
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\refint\LeaveManagement.Business.dll
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.pdb
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\ref\LeaveManagement.Business.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.sourcelink.json

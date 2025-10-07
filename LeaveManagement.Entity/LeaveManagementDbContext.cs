@@ -13,6 +13,8 @@ namespace LeaveManagement.Entity
         public DbSet<LeaveType> LeaveTypes { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<LeaveBalance> LeaveBalances { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Role> Roles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -110,12 +112,45 @@ namespace LeaveManagement.Entity
                       .IsUnique();
             });
 
+            // User configurations
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(u => u.Id);
+                entity.HasIndex(u => u.Username).IsUnique();
+                entity.HasIndex(u => u.Email).IsUnique();
+
+                entity.HasOne(u => u.Employee)
+                      .WithOne()
+                      .HasForeignKey<User>(u => u.EmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(u => u.Role)
+                      .WithMany(r => r.Users)
+                      .HasForeignKey(u => u.RoleId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Role configurations
+            modelBuilder.Entity<Role>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+                entity.HasIndex(r => r.Name).IsUnique();
+            });
+
             // Seed data
             SeedData(modelBuilder);
         }
 
         private void SeedData(ModelBuilder modelBuilder)
         {
+            // Seed Roles
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = 1, Name = "SystemAdmin", Description = "Sistem Yöneticisi", CanManageEmployees = true, CanManageDepartments = true, CanManageLeaveTypes = true, CanApproveLeaveRequests = true, CanViewAllLeaveRequests = true, CanManageSystemSettings = true },
+                new Role { Id = 2, Name = "HrManager", Description = "İK Müdürü", CanManageEmployees = true, CanManageDepartments = false, CanManageLeaveTypes = true, CanApproveLeaveRequests = true, CanViewAllLeaveRequests = true, CanManageSystemSettings = false },
+                new Role { Id = 3, Name = "DepartmentManager", Description = "Departman Yöneticisi", CanManageEmployees = false, CanManageDepartments = false, CanManageLeaveTypes = false, CanApproveLeaveRequests = true, CanViewAllLeaveRequests = false, CanManageSystemSettings = false },
+                new Role { Id = 4, Name = "Employee", Description = "Çalışan", CanManageEmployees = false, CanManageDepartments = false, CanManageLeaveTypes = false, CanApproveLeaveRequests = false, CanViewAllLeaveRequests = false, CanManageSystemSettings = false }
+            );
+
             // Seed LeaveTypes
             modelBuilder.Entity<LeaveType>().HasData(
                 new LeaveType { Id = 1, Name = "Annual Leave", Description = "Yearly vacation leave", MaxDaysPerYear = 30, RequiresApproval = true, IsPaid = true },
@@ -131,6 +166,16 @@ namespace LeaveManagement.Entity
                 new Department { Id = 2, Name = "Information Technology", Description = "IT Department" },
                 new Department { Id = 3, Name = "Finance", Description = "Finance Department" },
                 new Department { Id = 4, Name = "Marketing", Description = "Marketing Department" }
+            );
+
+            // Seed System Admin User
+            modelBuilder.Entity<User>().HasData(
+                new User { Id = 1, Username = "admin", Email = "admin@company.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), EmployeeId = 1, RoleId = 1, IsActive = true }
+            );
+
+            // Seed System Admin Employee
+            modelBuilder.Entity<Employee>().HasData(
+                new Employee { Id = 1, FirstName = "System", LastName = "Administrator", Email = "admin@company.com", EmployeeNumber = "EMP001", PhoneNumber = "555-0001", HireDate = DateTime.UtcNow, DepartmentId = 1, IsActive = true }
             );
         }
     }
