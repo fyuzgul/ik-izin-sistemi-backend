@@ -49,10 +49,14 @@ namespace LeaveManagement.Business.Services
 
         public async Task<LeaveRequestDto> CreateLeaveRequestAsync(CreateLeaveRequestDto createDto)
         {
-            // Validate employee exists
-            var employee = await _unitOfWork.Employees.GetByIdAsync(createDto.EmployeeId);
+            // Validate employee exists and get fresh data from database
+            var employee = await _unitOfWork.Employees.FirstOrDefaultAsync(e => e.Id == createDto.EmployeeId);
             if (employee == null)
                 throw new ArgumentException("Employee not found");
+            
+            // Validate that employee has a manager assigned
+            if (employee.ManagerId == null)
+                throw new InvalidOperationException("Çalışanın bir yöneticisi atanmamış. Lütfen İK departmanı ile iletişime geçin.");
 
             // Validate leave type exists
             var leaveType = await _unitOfWork.LeaveTypes.GetByIdAsync(createDto.LeaveTypeId);

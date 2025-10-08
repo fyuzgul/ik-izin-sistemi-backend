@@ -13,12 +13,18 @@ namespace LeaveManagement.Entity
         [StringLength(500)]
         public string? Description { get; set; }
         
+        [StringLength(20)]
+        public string? Code { get; set; }
+        
         public int? ManagerId { get; set; }
         public Employee? Manager { get; set; }
         
         public List<Employee> Employees { get; set; } = new List<Employee>();
         
         public bool IsActive { get; set; } = true;
+        
+        // System protected - cannot be deleted or modified
+        public bool IsSystem { get; set; } = false;
         
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedDate { get; set; }

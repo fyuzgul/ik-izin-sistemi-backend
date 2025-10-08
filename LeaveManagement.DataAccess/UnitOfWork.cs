@@ -15,6 +15,7 @@ namespace LeaveManagement.DataAccess
             LeaveTypes = new Repository<Entity.LeaveType>(_context);
             LeaveRequests = new Repository<Entity.LeaveRequest>(_context);
             LeaveBalances = new Repository<Entity.LeaveBalance>(_context);
+            Roles = new Repository<Entity.Role>(_context);
         }
 
         public IRepository<Entity.Employee> Employees { get; }
@@ -22,6 +23,7 @@ namespace LeaveManagement.DataAccess
         public IRepository<Entity.LeaveType> LeaveTypes { get; }
         public IRepository<Entity.LeaveRequest> LeaveRequests { get; }
         public IRepository<Entity.LeaveBalance> LeaveBalances { get; }
+        public IRepository<Entity.Role> Roles { get; }
 
         public async Task<int> SaveChangesAsync()
         {

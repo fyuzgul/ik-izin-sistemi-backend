@@ -8,6 +8,9 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// PostgreSQL DateTime fix - treat unspecified as UTC
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -43,6 +46,7 @@ builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
     builder.Services.AddScoped<LeaveManagement.Business.Interfaces.ILeaveRequestService, LeaveManagement.Business.Services.LeaveRequestService>();
     builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IEmployeeService, LeaveManagement.Business.Services.EmployeeService>();
     builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IAuthService, LeaveManagement.Business.Services.AuthService>();
+    builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IDepartmentService, LeaveManagement.Business.Services.DepartmentService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -58,16 +62,15 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Swagger'ı her ortamda aktif et
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // CORS'u HTTPS redirection'dan önce koy
 app.UseCors("AllowAll");
 
-app.UseHttpsRedirection();
+// HTTPS redirection disabled for testing
+// app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -75,11 +78,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 
-// Ensure database is created
+// Initialize database with default data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<LeaveManagementDbContext>();
-    context.Database.EnsureCreated();
+    await LeaveManagement.API.Data.DbInitializer.InitializeAsync(context);
 }
 
 app.Run();

@@ -25,6 +25,18 @@ namespace LeaveManagement.Entity
         [StringLength(20)]
         public string? PhoneNumber { get; set; }
         
+        // Kullanıcı bilgileri
+        [StringLength(50)]
+        public string? Username { get; set; }
+        
+        [StringLength(255)]
+        public string? PasswordHash { get; set; }
+        
+        public int? RoleId { get; set; }
+        public Role? Role { get; set; }
+        
+        public DateTime? LastLoginDate { get; set; }
+        
         public DateTime HireDate { get; set; } = DateTime.UtcNow;
         
         public int? DepartmentId { get; set; }

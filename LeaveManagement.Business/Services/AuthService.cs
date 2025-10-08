@@ -22,23 +22,23 @@ namespace LeaveManagement.Business.Services
             _configuration = configuration;
         }
 
-        private string GenerateJwtToken(User user)
+        private string GenerateJwtToken(Employee employee)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong"));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.Name),
-                new Claim("RoleId", user.RoleId.ToString()),
-                new Claim("EmployeeId", user.EmployeeId.ToString()),
-                new Claim("DepartmentId", user.Employee.DepartmentId?.ToString() ?? "0"),
-                new Claim("DepartmentName", user.Employee.Department?.Name ?? ""),
-                new Claim("EmployeeName", $"{user.Employee.FirstName} {user.Employee.LastName}"),
-                new Claim("IsActive", user.IsActive.ToString())
+                new Claim(ClaimTypes.NameIdentifier, employee.Id.ToString()),
+                new Claim(ClaimTypes.Name, employee.Username ?? ""),
+                new Claim(ClaimTypes.Email, employee.Email),
+                new Claim(ClaimTypes.Role, employee.Role?.Name ?? ""),
+                new Claim("RoleId", employee.RoleId?.ToString() ?? "0"),
+                new Claim("EmployeeId", employee.Id.ToString()),
+                new Claim("DepartmentId", employee.DepartmentId?.ToString() ?? "0"),
+                new Claim("DepartmentName", employee.Department?.Name ?? ""),
+                new Claim("EmployeeName", $"{employee.FirstName} {employee.LastName}"),
+                new Claim("IsActive", employee.IsActive.ToString())
             };
 
             var token = new JwtSecurityToken(
@@ -54,22 +54,21 @@ namespace LeaveManagement.Business.Services
 
         public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
         {
-            var user = await _context.Users
-                .Include(u => u.Employee)
-                .ThenInclude(e => e.Department)
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Username == loginDto.Username && u.IsActive);
+            var employee = await _context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Role)
+                .FirstOrDefaultAsync(e => e.Username == loginDto.Username && e.IsActive);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+            if (employee == null || employee.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, employee.PasswordHash))
             {
                 return null;
             }
 
             // Update last login date
-            user.LastLoginDate = DateTime.UtcNow;
+            employee.LastLoginDate = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            var token = GenerateJwtToken(user);
+            var token = GenerateJwtToken(employee);
 
             return new LoginResponseDto
             {
@@ -77,157 +76,206 @@ namespace LeaveManagement.Business.Services
             };
         }
 
-        public async Task<UserDto?> CreateUserAsync(CreateUserDto createUserDto)
+        public async Task<EmployeeDto?> CreateEmployeeAsync(CreateEmployeeDto createEmployeeDto)
         {
-            // Check if username or email already exists
-            var existingUser = await _context.Users
-                .AnyAsync(u => u.Username == createUserDto.Username || u.Email == createUserDto.Email);
+            // Check if username already exists
+            if (!string.IsNullOrEmpty(createEmployeeDto.Username))
+            {
+                var existingEmployee = await _context.Employees
+                    .AnyAsync(e => e.Username == createEmployeeDto.Username);
 
-            if (existingUser)
+                if (existingEmployee)
+                {
+                    return null;
+                }
+            }
+
+            // Check if employee number already exists
+            var existingEmployeeNumber = await _context.Employees
+                .AnyAsync(e => e.EmployeeNumber == createEmployeeDto.EmployeeNumber);
+
+            if (existingEmployeeNumber)
             {
                 return null;
             }
 
-            var user = new User
+            // Get role to check if this is a manager
+            var role = await _context.Roles.FindAsync(createEmployeeDto.RoleId);
+            var isManager = role != null && (role.Name == "Yönetici" || role.Name == "İK Müdürü" || role.Name == "Admin");
+
+            // Get department to set manager automatically
+            int? managerId = null;
+            if (createEmployeeDto.DepartmentId.HasValue && !isManager)
             {
-                Username = createUserDto.Username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password),
-                Email = createUserDto.Email,
-                EmployeeId = createUserDto.EmployeeId,
-                RoleId = createUserDto.RoleId,
-                IsActive = createUserDto.IsActive,
+                // For regular employees, set department's manager as their manager
+                var department = await _context.Departments.FindAsync(createEmployeeDto.DepartmentId.Value);
+                if (department?.ManagerId != null)
+                {
+                    managerId = department.ManagerId;
+                }
+            }
+
+            var employee = new Employee
+            {
+                FirstName = createEmployeeDto.FirstName,
+                LastName = createEmployeeDto.LastName,
+                Email = createEmployeeDto.Email,
+                EmployeeNumber = createEmployeeDto.EmployeeNumber,
+                PhoneNumber = createEmployeeDto.PhoneNumber,
+                HireDate = DateTime.SpecifyKind(createEmployeeDto.HireDate, DateTimeKind.Utc),
+                DepartmentId = createEmployeeDto.DepartmentId,
+                ManagerId = managerId, // Automatically set from department's manager for regular employees
+                Username = createEmployeeDto.Username,
+                PasswordHash = !string.IsNullOrEmpty(createEmployeeDto.Password) ? BCrypt.Net.BCrypt.HashPassword(createEmployeeDto.Password) : null,
+                RoleId = createEmployeeDto.RoleId,
+                IsActive = createEmployeeDto.IsActive,
                 CreatedDate = DateTime.UtcNow
             };
 
-            _context.Users.Add(user);
+            _context.Employees.Add(employee);
             await _context.SaveChangesAsync();
 
-            return await GetUserByIdAsync(user.Id);
+            // If this is a manager, update the department's manager to this employee
+            if (isManager && createEmployeeDto.DepartmentId.HasValue)
+            {
+                var department = await _context.Departments.FindAsync(createEmployeeDto.DepartmentId.Value);
+                if (department != null)
+                {
+                    department.ManagerId = employee.Id;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return await GetEmployeeByIdAsync(employee.Id);
         }
 
-        public async Task<List<UserDto>> GetAllUsersAsync()
+        public async Task<List<EmployeeDto>> GetAllEmployeesAsync()
         {
-            return await _context.Users
-                .Include(u => u.Employee)
-                .Include(u => u.Role)
-                .Include(u => u.Employee.Department)
-                .Where(u => u.IsActive)
-                .Select(u => new UserDto
+            return await _context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Role)
+                .Where(e => e.IsActive)
+                .Select(e => new EmployeeDto
                 {
-                    Id = u.Id,
-                    Username = u.Username,
-                    Email = u.Email,
-                    EmployeeName = $"{u.Employee.FirstName} {u.Employee.LastName}",
-                    RoleName = u.Role.Name,
-                    DepartmentName = u.Employee.Department != null ? u.Employee.Department.Name : "",
-                    IsActive = u.IsActive,
-                    CreatedDate = u.CreatedDate,
-                    LastLoginDate = u.LastLoginDate
+                    Id = e.Id,
+                    FirstName = e.FirstName,
+                    LastName = e.LastName,
+                    Email = e.Email,
+                    EmployeeNumber = e.EmployeeNumber,
+                    PhoneNumber = e.PhoneNumber,
+                    HireDate = e.HireDate,
+                    DepartmentId = e.DepartmentId,
+                    DepartmentName = e.Department != null ? e.Department.Name : "",
+                    Username = e.Username,
+                    RoleId = e.RoleId,
+                    RoleName = e.Role != null ? e.Role.Name : "",
+                    IsActive = e.IsActive,
+                    CreatedDate = e.CreatedDate,
+                    LastLoginDate = e.LastLoginDate
                 })
                 .ToListAsync();
         }
 
-        public async Task<UserDto?> GetUserByIdAsync(int userId)
+        public async Task<EmployeeDto?> GetEmployeeByIdAsync(int id)
         {
-            var user = await _context.Users
-                .Include(u => u.Employee)
-                .Include(u => u.Role)
-                .Include(u => u.Employee.Department)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var employee = await _context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Role)
+                .FirstOrDefaultAsync(e => e.Id == id);
 
-            if (user == null)
+            if (employee == null)
                 return null;
 
-            return new UserDto
+            return new EmployeeDto
             {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                EmployeeName = $"{user.Employee.FirstName} {user.Employee.LastName}",
-                RoleName = user.Role.Name,
-                DepartmentName = user.Employee.Department?.Name ?? "",
-                IsActive = user.IsActive,
-                CreatedDate = user.CreatedDate,
-                LastLoginDate = user.LastLoginDate
+                Id = employee.Id,
+                FirstName = employee.FirstName,
+                LastName = employee.LastName,
+                Email = employee.Email,
+                EmployeeNumber = employee.EmployeeNumber,
+                PhoneNumber = employee.PhoneNumber,
+                HireDate = employee.HireDate,
+                DepartmentId = employee.DepartmentId,
+                DepartmentName = employee.Department != null ? employee.Department.Name : "",
+                Username = employee.Username,
+                RoleId = employee.RoleId,
+                RoleName = employee.Role != null ? employee.Role.Name : "",
+                IsActive = employee.IsActive,
+                CreatedDate = employee.CreatedDate,
+                LastLoginDate = employee.LastLoginDate
             };
         }
 
-        public async Task<bool> UpdateUserAsync(int userId, CreateUserDto updateUserDto)
+        public async Task<bool> UpdateEmployeeAsync(int id, UpdateEmployeeDto updateEmployeeDto)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
+            var employee = await _context.Employees.FindAsync(id);
+            if (employee == null)
                 return false;
 
-            // Check if username or email already exists (excluding current user)
-            var existingUser = await _context.Users
-                .AnyAsync(u => (u.Username == updateUserDto.Username || u.Email == updateUserDto.Email) && u.Id != userId);
+            // System admin's role and critical info cannot be changed
+            if (employee.Id == 1)
+            {
+                // Only allow updating name, email and phone - not role, department or active status
+                employee.FirstName = updateEmployeeDto.FirstName;
+                employee.LastName = updateEmployeeDto.LastName;
+                employee.Email = updateEmployeeDto.Email;
+                employee.PhoneNumber = updateEmployeeDto.PhoneNumber;
+                employee.UpdatedDate = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                return true;
+            }
 
-            if (existingUser)
-                return false;
+            // Check if username already exists (excluding current employee)
+            if (!string.IsNullOrEmpty(updateEmployeeDto.Username))
+            {
+                var existingEmployee = await _context.Employees
+                    .AnyAsync(e => e.Username == updateEmployeeDto.Username && e.Id != id);
 
-            user.Username = updateUserDto.Username;
-            user.Email = updateUserDto.Email;
-            user.RoleId = updateUserDto.RoleId;
-            user.IsActive = updateUserDto.IsActive;
-            user.UpdatedDate = DateTime.UtcNow;
+                if (existingEmployee)
+                    return false;
+            }
+
+            employee.FirstName = updateEmployeeDto.FirstName;
+            employee.LastName = updateEmployeeDto.LastName;
+            employee.Email = updateEmployeeDto.Email;
+            employee.PhoneNumber = updateEmployeeDto.PhoneNumber;
+            employee.DepartmentId = updateEmployeeDto.DepartmentId;
+            employee.Username = updateEmployeeDto.Username;
+            employee.RoleId = updateEmployeeDto.RoleId;
+            employee.IsActive = updateEmployeeDto.IsActive;
+            employee.UpdatedDate = DateTime.UtcNow;
 
             // Update password only if provided
-            if (!string.IsNullOrEmpty(updateUserDto.Password))
+            if (!string.IsNullOrEmpty(updateEmployeeDto.Password))
             {
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updateUserDto.Password);
+                employee.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updateEmployeeDto.Password);
             }
 
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> DeactivateUserAsync(int userId)
+        public async Task<bool> DeactivateEmployeeAsync(int id)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
+            var employee = await _context.Employees.FindAsync(id);
+            if (employee == null)
                 return false;
 
-            user.IsActive = false;
-            user.UpdatedDate = DateTime.UtcNow;
+            // System admin cannot be deactivated
+            if (employee.Id == 1)
+                throw new InvalidOperationException("Sistem admini deaktif edilemez");
+
+            employee.IsActive = false;
+            employee.UpdatedDate = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(oldPassword, user.PasswordHash))
-                return false;
-
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.UpdatedDate = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<bool> ResetPasswordAsync(int userId, string newPassword)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
-                return false;
-
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.UpdatedDate = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<List<Role>> GetAllRolesAsync()
+        public async Task<List<Role>> GetRolesAsync()
         {
             return await _context.Roles
                 .Where(r => r.IsActive)
                 .ToListAsync();
-        }
-
-        public async Task<Role?> GetRoleByIdAsync(int roleId)
-        {
-            return await _context.Roles
-                .FirstOrDefaultAsync(r => r.Id == roleId && r.IsActive);
         }
     }
 }

@@ -1,11 +1,11 @@
+using Microsoft.AspNetCore.Mvc;
 using LeaveManagement.Business.Interfaces;
 using LeaveManagement.Business.Models;
-using Microsoft.AspNetCore.Mvc;
 
 namespace LeaveManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -34,18 +34,18 @@ namespace LeaveManagement.API.Controllers
             }
         }
 
-        [HttpPost("users")]
-        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createUserDto)
+        [HttpPost("employees")]
+        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto createEmployeeDto)
         {
             try
             {
-                var result = await _authService.CreateUserAsync(createUserDto);
+                var result = await _authService.CreateEmployeeAsync(createEmployeeDto);
                 if (result == null)
                 {
-                    return BadRequest(new { message = "Kullanıcı adı veya e-posta zaten kullanılıyor" });
+                    return BadRequest(new { message = "Çalışan oluşturulamadı. Kullanıcı adı veya çalışan numarası zaten kullanımda." });
                 }
 
-                return CreatedAtAction(nameof(GetUser), new { id = result.Id }, result);
+                return CreatedAtAction(nameof(GetEmployee), new { id = result.Id }, result);
             }
             catch (Exception ex)
             {
@@ -53,13 +53,13 @@ namespace LeaveManagement.API.Controllers
             }
         }
 
-        [HttpGet("users")]
-        public async Task<IActionResult> GetAllUsers()
+        [HttpGet("employees")]
+        public async Task<IActionResult> GetAllEmployees()
         {
             try
             {
-                var users = await _authService.GetAllUsersAsync();
-                return Ok(users);
+                var employees = await _authService.GetAllEmployeesAsync();
+                return Ok(employees);
             }
             catch (Exception ex)
             {
@@ -67,18 +67,18 @@ namespace LeaveManagement.API.Controllers
             }
         }
 
-        [HttpGet("users/{id}")]
-        public async Task<IActionResult> GetUser(int id)
+        [HttpGet("employees/{id}")]
+        public async Task<IActionResult> GetEmployee(int id)
         {
             try
             {
-                var user = await _authService.GetUserByIdAsync(id);
-                if (user == null)
+                var employee = await _authService.GetEmployeeByIdAsync(id);
+                if (employee == null)
                 {
-                    return NotFound(new { message = "Kullanıcı bulunamadı" });
+                    return NotFound(new { message = "Çalışan bulunamadı" });
                 }
 
-                return Ok(user);
+                return Ok(employee);
             }
             catch (Exception ex)
             {
@@ -86,18 +86,18 @@ namespace LeaveManagement.API.Controllers
             }
         }
 
-        [HttpPut("users/{id}")]
-        public async Task<IActionResult> UpdateUser(int id, [FromBody] CreateUserDto updateUserDto)
+        [HttpPut("employees/{id}")]
+        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] UpdateEmployeeDto updateEmployeeDto)
         {
             try
             {
-                var result = await _authService.UpdateUserAsync(id, updateUserDto);
+                var result = await _authService.UpdateEmployeeAsync(id, updateEmployeeDto);
                 if (!result)
                 {
-                    return BadRequest(new { message = "Kullanıcı güncellenemedi" });
+                    return BadRequest(new { message = "Çalışan güncellenemedi" });
                 }
 
-                return Ok(new { message = "Kullanıcı başarıyla güncellendi" });
+                return Ok(new { message = "Çalışan başarıyla güncellendi" });
             }
             catch (Exception ex)
             {
@@ -105,56 +105,18 @@ namespace LeaveManagement.API.Controllers
             }
         }
 
-        [HttpDelete("users/{id}")]
-        public async Task<IActionResult> DeactivateUser(int id)
+        [HttpDelete("employees/{id}")]
+        public async Task<IActionResult> DeactivateEmployee(int id)
         {
             try
             {
-                var result = await _authService.DeactivateUserAsync(id);
+                var result = await _authService.DeactivateEmployeeAsync(id);
                 if (!result)
                 {
-                    return NotFound(new { message = "Kullanıcı bulunamadı" });
+                    return NotFound(new { message = "Çalışan bulunamadı" });
                 }
 
-                return Ok(new { message = "Kullanıcı başarıyla deaktive edildi" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
-            }
-        }
-
-        [HttpPut("users/{id}/change-password")]
-        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto changePasswordDto)
-        {
-            try
-            {
-                var result = await _authService.ChangePasswordAsync(id, changePasswordDto.OldPassword, changePasswordDto.NewPassword);
-                if (!result)
-                {
-                    return BadRequest(new { message = "Eski şifre yanlış veya kullanıcı bulunamadı" });
-                }
-
-                return Ok(new { message = "Şifre başarıyla değiştirildi" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
-            }
-        }
-
-        [HttpPut("users/{id}/reset-password")]
-        public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetPasswordDto resetPasswordDto)
-        {
-            try
-            {
-                var result = await _authService.ResetPasswordAsync(id, resetPasswordDto.NewPassword);
-                if (!result)
-                {
-                    return NotFound(new { message = "Kullanıcı bulunamadı" });
-                }
-
-                return Ok(new { message = "Şifre başarıyla sıfırlandı" });
+                return Ok(new { message = "Çalışan başarıyla deaktive edildi" });
             }
             catch (Exception ex)
             {
@@ -163,11 +125,11 @@ namespace LeaveManagement.API.Controllers
         }
 
         [HttpGet("roles")]
-        public async Task<IActionResult> GetAllRoles()
+        public async Task<IActionResult> GetRoles()
         {
             try
             {
-                var roles = await _authService.GetAllRolesAsync();
+                var roles = await _authService.GetRolesAsync();
                 return Ok(roles);
             }
             catch (Exception ex)
@@ -175,35 +137,5 @@ namespace LeaveManagement.API.Controllers
                 return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
-
-        [HttpGet("roles/{id}")]
-        public async Task<IActionResult> GetRole(int id)
-        {
-            try
-            {
-                var role = await _authService.GetRoleByIdAsync(id);
-                if (role == null)
-                {
-                    return NotFound(new { message = "Rol bulunamadı" });
-                }
-
-                return Ok(role);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
-            }
-        }
-    }
-
-    public class ChangePasswordDto
-    {
-        public string OldPassword { get; set; } = string.Empty;
-        public string NewPassword { get; set; } = string.Empty;
-    }
-
-    public class ResetPasswordDto
-    {
-        public string NewPassword { get; set; } = string.Empty;
     }
 }

@@ -10,9 +10,9 @@ C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\D
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.AssemblyInfoInputs.cache
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.AssemblyInfo.cs
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.csproj.CoreCompileInputs.cache
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.sourcelink.json
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveMan.741BD578.Up2Date
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.dll
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\refint\LeaveManagement.Business.dll
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.pdb
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\ref\LeaveManagement.Business.dll
-C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.Business\obj\Debug\net8.0\LeaveManagement.Business.sourcelink.json

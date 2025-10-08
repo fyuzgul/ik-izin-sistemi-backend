@@ -7,6 +7,7 @@ namespace LeaveManagement.DataAccess
         IRepository<Entity.LeaveType> LeaveTypes { get; }
         IRepository<Entity.LeaveRequest> LeaveRequests { get; }
         IRepository<Entity.LeaveBalance> LeaveBalances { get; }
+        IRepository<Entity.Role> Roles { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

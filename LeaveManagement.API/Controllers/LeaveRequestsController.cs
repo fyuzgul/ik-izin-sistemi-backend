@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using LeaveManagement.Business.Interfaces;
 using LeaveManagement.Business.Models;
+using LeaveManagement.API.Extensions;
 
 namespace LeaveManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/leave-requests")]
+    [Authorize]
     public class LeaveRequestsController : ControllerBase
     {
         private readonly ILeaveRequestService _leaveRequestService;
@@ -22,6 +25,27 @@ namespace LeaveManagement.API.Controllers
             {
                 var leaveRequests = await _leaveRequestService.GetAllLeaveRequestsAsync();
                 return Ok(leaveRequests);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("my-requests")]
+        public async Task<ActionResult<IEnumerable<LeaveRequestDto>>> GetMyLeaveRequests()
+        {
+            try
+            {
+                // Get employee ID from JWT token
+                var employeeId = User.GetEmployeeId();
+                
+                var leaveRequests = await _leaveRequestService.GetLeaveRequestsByEmployeeIdAsync(employeeId);
+                return Ok(leaveRequests);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -51,8 +75,27 @@ namespace LeaveManagement.API.Controllers
         {
             try
             {
+                // Get employee ID from JWT token
+                var currentEmployeeId = User.GetEmployeeId();
+                
+                // Employees can only view their own leave requests
+                // Managers and HR can view any employee's requests (we'll check roles)
+                var userRole = User.GetUserRole();
+                
+                if (currentEmployeeId != employeeId && 
+                    userRole != "Yönetici" && 
+                    userRole != "İK Müdürü" && 
+                    userRole != "Admin")
+                {
+                    return Forbid();
+                }
+
                 var leaveRequests = await _leaveRequestService.GetLeaveRequestsByEmployeeIdAsync(employeeId);
                 return Ok(leaveRequests);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -60,13 +103,29 @@ namespace LeaveManagement.API.Controllers
             }
         }
 
-        [HttpGet("pending/department-manager/{managerId}")]
-        public async Task<ActionResult<IEnumerable<LeaveRequestDto>>> GetPendingRequestsForDepartmentManager(int managerId)
+        [HttpGet("pending/department-manager")]
+        public async Task<ActionResult<IEnumerable<LeaveRequestDto>>> GetPendingRequestsForDepartmentManager()
         {
             try
             {
+                // Get employee ID from JWT token
+                var managerId = User.GetEmployeeId();
+                
+                Console.WriteLine($"[DEBUG] Pending requests için managerId: {managerId}");
+                
                 var leaveRequests = await _leaveRequestService.GetPendingRequestsForDepartmentManagerAsync(managerId);
+                
+                Console.WriteLine($"[DEBUG] Bulunan talep sayısı: {leaveRequests.Count()}");
+                foreach (var req in leaveRequests)
+                {
+                    Console.WriteLine($"[DEBUG] Request ID: {req.Id}, Employee: {req.EmployeeName}, DeptManagerId: {req.DepartmentManagerId}");
+                }
+                
                 return Ok(leaveRequests);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -96,8 +155,19 @@ namespace LeaveManagement.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                // Get employee ID from JWT token
+                var employeeId = User.GetEmployeeId();
+                
+                // Override the employee ID from the request with the one from the token
+                // This ensures employees can only create leave requests for themselves
+                createDto.EmployeeId = employeeId;
+
                 var leaveRequest = await _leaveRequestService.CreateLeaveRequestAsync(createDto);
                 return CreatedAtAction(nameof(GetLeaveRequest), new { id = leaveRequest.Id }, leaveRequest);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (ArgumentException ex)
             {
@@ -121,17 +191,21 @@ namespace LeaveManagement.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Get approver ID from headers or authentication context
-                // For now, we'll use a hardcoded value - in real scenario, get from JWT token
-                var approverId = 1; // This should come from authentication
-                var isHrManager = updateDto.Status == LeaveManagement.Entity.LeaveRequestStatus.ApprovedByHrManager;
+                // Get approver ID from JWT token
+                var approverId = User.GetEmployeeId();
+                var userRole = User.GetUserRole();
+                
+                // Determine if this is HR manager approval
+                var isHrManager = userRole == "İK Müdürü" || 
+                                 updateDto.Status == LeaveManagement.Entity.LeaveRequestStatus.ApprovedByHrManager ||
+                                 updateDto.Status == LeaveManagement.Entity.LeaveRequestStatus.RejectedByHrManager;
 
                 var result = await _leaveRequestService.UpdateLeaveRequestStatusAsync(id, updateDto, approverId, isHrManager);
                 
                 if (!result)
                     return NotFound();
 
-                return Ok(new { message = "Leave request status updated successfully" });
+                return Ok(new { message = "İzin talebi durumu başarıyla güncellendi" });
             }
             catch (InvalidOperationException ex)
             {
@@ -148,16 +222,23 @@ namespace LeaveManagement.API.Controllers
         }
 
         [HttpPut("{id}/cancel")]
-        public async Task<IActionResult> CancelLeaveRequest(int id, [FromBody] CancelLeaveRequestDto cancelDto)
+        public async Task<IActionResult> CancelLeaveRequest(int id)
         {
             try
             {
-                var result = await _leaveRequestService.CancelLeaveRequestAsync(id, cancelDto.EmployeeId);
+                // Get employee ID from JWT token
+                var employeeId = User.GetEmployeeId();
+                
+                var result = await _leaveRequestService.CancelLeaveRequestAsync(id, employeeId);
                 
                 if (!result)
                     return NotFound();
 
-                return Ok(new { message = "Leave request cancelled successfully" });
+                return Ok(new { message = "İzin talebi başarıyla iptal edildi" });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -196,8 +277,26 @@ namespace LeaveManagement.API.Controllers
         {
             try
             {
+                // Get employee ID from JWT token
+                var currentEmployeeId = User.GetEmployeeId();
+                var userRole = User.GetUserRole();
+                
+                // Employees can only view their own balance
+                // Managers and HR can view any employee's balance
+                if (currentEmployeeId != employeeId && 
+                    userRole != "Yönetici" && 
+                    userRole != "İK Müdürü" && 
+                    userRole != "Admin")
+                {
+                    return Forbid();
+                }
+
                 var leaveBalances = await _leaveRequestService.GetLeaveBalancesByEmployeeIdAsync(employeeId);
                 return Ok(leaveBalances);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -210,19 +309,32 @@ namespace LeaveManagement.API.Controllers
         {
             try
             {
+                // Get employee ID from JWT token
+                var currentEmployeeId = User.GetEmployeeId();
+                var userRole = User.GetUserRole();
+                
+                // Employees can only view their own balance
+                // Managers and HR can view any employee's balance
+                if (currentEmployeeId != employeeId && 
+                    userRole != "Yönetici" && 
+                    userRole != "İK Müdürü" && 
+                    userRole != "Admin")
+                {
+                    return Forbid();
+                }
+
                 var leaveBalances = await _leaveRequestService.GetLeaveBalancesByEmployeeIdAndYearAsync(employeeId, year);
                 return Ok(leaveBalances);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-    }
-
-    public class CancelLeaveRequestDto
-    {
-        public int EmployeeId { get; set; }
     }
 }
 

@@ -48,7 +48,13 @@ namespace LeaveManagement.Business.Services
 
         public async Task<IEnumerable<EmployeeDto>> GetSubordinatesAsync(int managerId)
         {
-            var employees = await _unitOfWork.Employees.FindAsync(e => e.ManagerId == managerId && e.IsActive);
+            // Artık ManagerId kullanmıyoruz, bu metod departman yöneticisi için kullanılacak
+            // Departman yöneticisinin departmanındaki tüm çalışanları getir
+            var manager = await _unitOfWork.Employees.GetByIdAsync(managerId);
+            if (manager?.DepartmentId == null)
+                return new List<EmployeeDto>();
+
+            var employees = await _unitOfWork.Employees.FindAsync(e => e.DepartmentId == manager.DepartmentId && e.IsActive && e.Id != managerId);
             var result = new List<EmployeeDto>();
 
             foreach (var employee in employees)
@@ -67,9 +73,13 @@ namespace LeaveManagement.Business.Services
                 LastName = employeeDto.LastName,
                 Email = employeeDto.Email,
                 EmployeeNumber = employeeDto.EmployeeNumber,
+                PhoneNumber = employeeDto.PhoneNumber,
+                HireDate = DateTime.SpecifyKind(employeeDto.HireDate, DateTimeKind.Utc),
                 DepartmentId = employeeDto.DepartmentId,
-                ManagerId = employeeDto.ManagerId,
-                IsActive = true,
+                Username = employeeDto.Username,
+                PasswordHash = !string.IsNullOrEmpty(employeeDto.Password) ? BCrypt.Net.BCrypt.HashPassword(employeeDto.Password) : null,
+                RoleId = employeeDto.RoleId,
+                IsActive = employeeDto.IsActive,
                 CreatedDate = DateTime.UtcNow
             };
 
@@ -92,10 +102,19 @@ namespace LeaveManagement.Business.Services
             employee.LastName = employeeDto.LastName;
             employee.Email = employeeDto.Email;
             employee.EmployeeNumber = employeeDto.EmployeeNumber;
+            employee.PhoneNumber = employeeDto.PhoneNumber;
+            employee.HireDate = DateTime.SpecifyKind(employeeDto.HireDate, DateTimeKind.Utc);
             employee.DepartmentId = employeeDto.DepartmentId;
-            employee.ManagerId = employeeDto.ManagerId;
+            employee.Username = employeeDto.Username;
+            employee.RoleId = employeeDto.RoleId;
             employee.IsActive = employeeDto.IsActive;
             employee.UpdatedDate = DateTime.UtcNow;
+
+            // Update password only if provided
+            if (!string.IsNullOrEmpty(employeeDto.Password))
+            {
+                employee.PasswordHash = BCrypt.Net.BCrypt.HashPassword(employeeDto.Password);
+            }
 
             await _unitOfWork.Employees.UpdateAsync(employee);
             await _unitOfWork.SaveChangesAsync();
@@ -151,9 +170,10 @@ namespace LeaveManagement.Business.Services
                 ? await _unitOfWork.Departments.GetByIdAsync(employee.DepartmentId.Value) 
                 : null;
 
-            var manager = employee.ManagerId.HasValue 
-                ? await _unitOfWork.Employees.GetByIdAsync(employee.ManagerId.Value) 
+            var role = employee.RoleId.HasValue 
+                ? await _unitOfWork.Roles.GetByIdAsync(employee.RoleId.Value) 
                 : null;
+
 
             return new EmployeeDto
             {
@@ -162,11 +182,16 @@ namespace LeaveManagement.Business.Services
                 LastName = employee.LastName,
                 Email = employee.Email,
                 EmployeeNumber = employee.EmployeeNumber,
+                PhoneNumber = employee.PhoneNumber,
+                HireDate = employee.HireDate,
                 DepartmentId = employee.DepartmentId,
-                DepartmentName = department?.Name,
-                ManagerId = employee.ManagerId,
-                ManagerName = manager != null ? $"{manager.FirstName} {manager.LastName}" : null,
-                IsActive = employee.IsActive
+                DepartmentName = department?.Name ?? string.Empty,
+                Username = employee.Username,
+                RoleId = employee.RoleId,
+                RoleName = role?.Name ?? string.Empty,
+                IsActive = employee.IsActive,
+                CreatedDate = employee.CreatedDate,
+                LastLoginDate = employee.LastLoginDate
             };
         }
 

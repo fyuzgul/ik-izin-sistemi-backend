@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LeaveManagement.DataAccess")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5a7350995f61fe17ef26c914513b4f04aa62fe0f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f84b63736ac1eae12c165b0aa951ce698b0a63e9")]
 [assembly: System.Reflection.AssemblyProductAttribute("LeaveManagement.DataAccess")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LeaveManagement.DataAccess")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

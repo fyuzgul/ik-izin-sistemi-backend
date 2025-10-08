@@ -82,20 +82,6 @@ namespace LeaveManagement.Business.Models
         public int RemainingDays { get; set; }
     }
 
-    public class EmployeeDto
-    {
-        public int Id { get; set; }
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string FullName => $"{FirstName} {LastName}";
-        public string Email { get; set; } = string.Empty;
-        public string EmployeeNumber { get; set; } = string.Empty;
-        public int? DepartmentId { get; set; }
-        public string? DepartmentName { get; set; }
-        public int? ManagerId { get; set; }
-        public string? ManagerName { get; set; }
-        public bool IsActive { get; set; }
-    }
 }
 
 

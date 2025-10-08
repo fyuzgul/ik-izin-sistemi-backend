@@ -5,7 +5,7 @@ using LeaveManagement.Entity;
 namespace LeaveManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/leave-types")]
     public class LeaveTypesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;

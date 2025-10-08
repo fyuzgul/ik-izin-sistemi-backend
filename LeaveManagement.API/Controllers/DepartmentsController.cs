@@ -1,257 +1,146 @@
 using Microsoft.AspNetCore.Mvc;
-using LeaveManagement.DataAccess;
-using LeaveManagement.Entity;
+using LeaveManagement.Business.Interfaces;
+using LeaveManagement.Business.Models;
 
 namespace LeaveManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/departments")]
     public class DepartmentsController : ControllerBase
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IDepartmentService _departmentService;
 
-        public DepartmentsController(IUnitOfWork unitOfWork)
+        public DepartmentsController(IDepartmentService departmentService)
         {
-            _unitOfWork = unitOfWork;
+            _departmentService = departmentService;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetAllDepartments()
+        public async Task<IActionResult> GetAll()
         {
             try
             {
-                var departments = await _unitOfWork.Departments.GetAllAsync();
-                var departmentDtos = new List<DepartmentDto>();
-
-                foreach (var department in departments)
-                {
-                    var manager = department.ManagerId.HasValue 
-                        ? await _unitOfWork.Employees.GetByIdAsync(department.ManagerId.Value) 
-                        : null;
-
-                    departmentDtos.Add(new DepartmentDto
-                    {
-                        Id = department.Id,
-                        Name = department.Name,
-                        Description = department.Description,
-                        ManagerId = department.ManagerId,
-                        ManagerName = manager != null ? $"{manager.FirstName} {manager.LastName}" : null,
-                        IsActive = department.IsActive,
-                        CreatedDate = department.CreatedDate,
-                        UpdatedDate = department.UpdatedDate
-                    });
-                }
-
-                return Ok(departmentDtos);
+                var departments = await _departmentService.GetAllAsync();
+                return Ok(departments);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<DepartmentDto>> GetDepartment(int id)
+        public async Task<IActionResult> GetById(int id)
         {
             try
             {
-                var department = await _unitOfWork.Departments.GetByIdAsync(id);
+                var department = await _departmentService.GetByIdAsync(id);
                 if (department == null)
-                    return NotFound();
-
-                var manager = department.ManagerId.HasValue 
-                    ? await _unitOfWork.Employees.GetByIdAsync(department.ManagerId.Value) 
-                    : null;
-
-                var departmentDto = new DepartmentDto
                 {
-                    Id = department.Id,
-                    Name = department.Name,
-                    Description = department.Description,
-                    ManagerId = department.ManagerId,
-                    ManagerName = manager != null ? $"{manager.FirstName} {manager.LastName}" : null,
-                    IsActive = department.IsActive,
-                    CreatedDate = department.CreatedDate,
-                    UpdatedDate = department.UpdatedDate
-                };
+                    return NotFound(new { message = "Departman bulunamadı" });
+                }
 
-                return Ok(departmentDto);
+                return Ok(department);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
 
         [HttpPost]
-        public async Task<ActionResult<DepartmentDto>> CreateDepartment([FromBody] CreateDepartmentDto createDto)
+        public async Task<IActionResult> Create([FromBody] CreateDepartmentDto createDepartmentDto)
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var department = new Department
+                var result = await _departmentService.CreateAsync(createDepartmentDto);
+                if (result == null)
                 {
-                    Name = createDto.Name,
-                    Description = createDto.Description,
-                    ManagerId = createDto.ManagerId,
-                    IsActive = true,
-                    CreatedDate = DateTime.UtcNow
-                };
+                    return BadRequest(new { message = "Departman oluşturulamadı. Departman adı zaten kullanımda." });
+                }
 
-                await _unitOfWork.Departments.AddAsync(department);
-                await _unitOfWork.SaveChangesAsync();
-
-                var manager = department.ManagerId.HasValue 
-                    ? await _unitOfWork.Employees.GetByIdAsync(department.ManagerId.Value) 
-                    : null;
-
-                var departmentDto = new DepartmentDto
-                {
-                    Id = department.Id,
-                    Name = department.Name,
-                    Description = department.Description,
-                    ManagerId = department.ManagerId,
-                    ManagerName = manager != null ? $"{manager.FirstName} {manager.LastName}" : null,
-                    IsActive = department.IsActive,
-                    CreatedDate = department.CreatedDate,
-                    UpdatedDate = department.UpdatedDate
-                };
-
-                return CreatedAtAction(nameof(GetDepartment), new { id = department.Id }, departmentDto);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDepartment(int id, [FromBody] UpdateDepartmentDto updateDto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateDepartmentDto updateDepartmentDto)
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+                var result = await _departmentService.UpdateAsync(id, updateDepartmentDto);
+                if (!result)
+                {
+                    return BadRequest(new { message = "Departman güncellenemedi" });
+                }
 
-                var department = await _unitOfWork.Departments.GetByIdAsync(id);
-                if (department == null)
-                    return NotFound();
-
-                department.Name = updateDto.Name;
-                department.Description = updateDto.Description;
-                department.ManagerId = updateDto.ManagerId;
-                department.UpdatedDate = DateTime.UtcNow;
-
-                await _unitOfWork.Departments.UpdateAsync(department);
-                await _unitOfWork.SaveChangesAsync();
-
-                return Ok(new { message = "Department updated successfully" });
+                return Ok(new { message = "Departman başarıyla güncellendi" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteDepartment(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                var department = await _unitOfWork.Departments.GetByIdAsync(id);
-                if (department == null)
-                    return NotFound();
+                var result = await _departmentService.DeleteAsync(id);
+                if (!result)
+                {
+                    return NotFound(new { message = "Departman bulunamadı" });
+                }
 
-                // Check if there are employees in this department
-                var hasEmployees = await _unitOfWork.Employees.ExistsAsync(e => e.DepartmentId == id);
-                if (hasEmployees)
-                    return BadRequest("Cannot delete department that has employees");
-
-                await _unitOfWork.Departments.DeleteAsync(department);
-                await _unitOfWork.SaveChangesAsync();
-
-                return Ok(new { message = "Department deleted successfully" });
+                return Ok(new { message = "Departman başarıyla silindi" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
 
         [HttpPut("{id}/activate")]
-        public async Task<IActionResult> ActivateDepartment(int id)
+        public async Task<IActionResult> Activate(int id)
         {
             try
             {
-                var department = await _unitOfWork.Departments.GetByIdAsync(id);
-                if (department == null)
-                    return NotFound();
+                var result = await _departmentService.ActivateAsync(id);
+                if (!result)
+                {
+                    return NotFound(new { message = "Departman bulunamadı" });
+                }
 
-                department.IsActive = true;
-                department.UpdatedDate = DateTime.UtcNow;
-
-                await _unitOfWork.Departments.UpdateAsync(department);
-                await _unitOfWork.SaveChangesAsync();
-
-                return Ok(new { message = "Department activated successfully" });
+                return Ok(new { message = "Departman başarıyla aktifleştirildi" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
 
         [HttpPut("{id}/deactivate")]
-        public async Task<IActionResult> DeactivateDepartment(int id)
+        public async Task<IActionResult> Deactivate(int id)
         {
             try
             {
-                var department = await _unitOfWork.Departments.GetByIdAsync(id);
-                if (department == null)
-                    return NotFound();
+                var result = await _departmentService.DeactivateAsync(id);
+                if (!result)
+                {
+                    return NotFound(new { message = "Departman bulunamadı" });
+                }
 
-                department.IsActive = false;
-                department.UpdatedDate = DateTime.UtcNow;
-
-                await _unitOfWork.Departments.UpdateAsync(department);
-                await _unitOfWork.SaveChangesAsync();
-
-                return Ok(new { message = "Department deactivated successfully" });
+                return Ok(new { message = "Departman başarıyla deaktive edildi" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
             }
         }
     }
-
-    public class DepartmentDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public int? ManagerId { get; set; }
-        public string? ManagerName { get; set; }
-        public bool IsActive { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime? UpdatedDate { get; set; }
-    }
-
-    public class CreateDepartmentDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public int? ManagerId { get; set; }
-    }
-
-    public class UpdateDepartmentDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public int? ManagerId { get; set; }
-    }
 }
-
-

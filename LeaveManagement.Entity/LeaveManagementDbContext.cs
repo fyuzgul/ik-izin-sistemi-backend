@@ -13,7 +13,6 @@ namespace LeaveManagement.Entity
         public DbSet<LeaveType> LeaveTypes { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<LeaveBalance> LeaveBalances { get; set; }
-        public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -40,6 +39,17 @@ namespace LeaveManagement.Entity
                       .WithMany(d => d.Employees)
                       .HasForeignKey(e => e.DepartmentId)
                       .OnDelete(DeleteBehavior.SetNull);
+                
+                // Role relationship
+                entity.HasOne(e => e.Role)
+                      .WithMany()
+                      .HasForeignKey(e => e.RoleId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                
+                // Unique constraints
+                entity.HasIndex(e => e.Username).IsUnique();
+                entity.HasIndex(e => e.Email).IsUnique();
+                entity.HasIndex(e => e.EmployeeNumber).IsUnique();
             });
 
             // Department configurations
@@ -112,23 +122,6 @@ namespace LeaveManagement.Entity
                       .IsUnique();
             });
 
-            // User configurations
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.HasKey(u => u.Id);
-                entity.HasIndex(u => u.Username).IsUnique();
-                entity.HasIndex(u => u.Email).IsUnique();
-
-                entity.HasOne(u => u.Employee)
-                      .WithOne()
-                      .HasForeignKey<User>(u => u.EmployeeId)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(u => u.Role)
-                      .WithMany(r => r.Users)
-                      .HasForeignKey(u => u.RoleId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
 
             // Role configurations
             modelBuilder.Entity<Role>(entity =>
@@ -143,40 +136,8 @@ namespace LeaveManagement.Entity
 
         private void SeedData(ModelBuilder modelBuilder)
         {
-            // Seed Roles
-            modelBuilder.Entity<Role>().HasData(
-                new Role { Id = 1, Name = "SystemAdmin", Description = "Sistem Yöneticisi", CanManageEmployees = true, CanManageDepartments = true, CanManageLeaveTypes = true, CanApproveLeaveRequests = true, CanViewAllLeaveRequests = true, CanManageSystemSettings = true },
-                new Role { Id = 2, Name = "HrManager", Description = "İK Müdürü", CanManageEmployees = true, CanManageDepartments = false, CanManageLeaveTypes = true, CanApproveLeaveRequests = true, CanViewAllLeaveRequests = true, CanManageSystemSettings = false },
-                new Role { Id = 3, Name = "DepartmentManager", Description = "Departman Yöneticisi", CanManageEmployees = false, CanManageDepartments = false, CanManageLeaveTypes = false, CanApproveLeaveRequests = true, CanViewAllLeaveRequests = false, CanManageSystemSettings = false },
-                new Role { Id = 4, Name = "Employee", Description = "Çalışan", CanManageEmployees = false, CanManageDepartments = false, CanManageLeaveTypes = false, CanApproveLeaveRequests = false, CanViewAllLeaveRequests = false, CanManageSystemSettings = false }
-            );
-
-            // Seed LeaveTypes
-            modelBuilder.Entity<LeaveType>().HasData(
-                new LeaveType { Id = 1, Name = "Annual Leave", Description = "Yearly vacation leave", MaxDaysPerYear = 30, RequiresApproval = true, IsPaid = true },
-                new LeaveType { Id = 2, Name = "Sick Leave", Description = "Medical leave", MaxDaysPerYear = 10, RequiresApproval = true, IsPaid = true },
-                new LeaveType { Id = 3, Name = "Maternity Leave", Description = "Maternity leave", MaxDaysPerYear = 90, RequiresApproval = true, IsPaid = true },
-                new LeaveType { Id = 4, Name = "Paternity Leave", Description = "Paternity leave", MaxDaysPerYear = 15, RequiresApproval = true, IsPaid = true },
-                new LeaveType { Id = 5, Name = "Emergency Leave", Description = "Emergency situations", MaxDaysPerYear = 5, RequiresApproval = true, IsPaid = true }
-            );
-
-            // Seed Departments
-            modelBuilder.Entity<Department>().HasData(
-                new Department { Id = 1, Name = "Human Resources", Description = "HR Department" },
-                new Department { Id = 2, Name = "Information Technology", Description = "IT Department" },
-                new Department { Id = 3, Name = "Finance", Description = "Finance Department" },
-                new Department { Id = 4, Name = "Marketing", Description = "Marketing Department" }
-            );
-
-            // Seed System Admin User
-            modelBuilder.Entity<User>().HasData(
-                new User { Id = 1, Username = "admin", Email = "admin@company.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), EmployeeId = 1, RoleId = 1, IsActive = true }
-            );
-
-            // Seed System Admin Employee
-            modelBuilder.Entity<Employee>().HasData(
-                new Employee { Id = 1, FirstName = "System", LastName = "Administrator", Email = "admin@company.com", EmployeeNumber = "EMP001", PhoneNumber = "555-0001", HireDate = DateTime.UtcNow, DepartmentId = 1, IsActive = true }
-            );
+            // Seed data removed - now handled by DbInitializer
+            // DbInitializer will create initial data on first run
         }
     }
 }

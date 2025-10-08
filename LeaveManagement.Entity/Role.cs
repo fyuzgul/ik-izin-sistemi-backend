@@ -22,9 +22,10 @@ namespace LeaveManagement.Entity
         
         public bool IsActive { get; set; } = true;
         
+        // System protected - cannot be deleted or modified
+        public bool IsSystem { get; set; } = false;
+        
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedDate { get; set; }
-        
-        public List<User> Users { get; set; } = new List<User>();
     }
 }
