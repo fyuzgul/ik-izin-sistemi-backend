@@ -13,6 +13,7 @@ namespace LeaveManagement.DataAccess
         {
             return await _dbSet
                 .Include(lr => lr.Employee)
+                    .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
                 .Include(lr => lr.DepartmentManager)
                 .Include(lr => lr.HrManager)
@@ -25,7 +26,9 @@ namespace LeaveManagement.DataAccess
         {
             return await _dbSet
                 .Include(lr => lr.Employee)
+                    .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
+                .Include(lr => lr.DepartmentManager)
                 .Where(lr => lr.DepartmentManagerId == managerId && 
                             lr.Status == LeaveRequestStatus.Pending)
                 .OrderByDescending(lr => lr.CreatedDate)
@@ -36,6 +39,7 @@ namespace LeaveManagement.DataAccess
         {
             return await _dbSet
                 .Include(lr => lr.Employee)
+                    .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
                 .Include(lr => lr.DepartmentManager)
                 .Where(lr => lr.Status == LeaveRequestStatus.ApprovedByDepartmentManager)
@@ -47,6 +51,7 @@ namespace LeaveManagement.DataAccess
         {
             return await _dbSet
                 .Include(lr => lr.Employee)
+                    .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
                 .Include(lr => lr.DepartmentManager)
                 .Include(lr => lr.HrManager)
@@ -58,6 +63,7 @@ namespace LeaveManagement.DataAccess
         {
             return await _dbSet
                 .Include(lr => lr.Employee)
+                    .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
                 .Include(lr => lr.DepartmentManager)
                 .Include(lr => lr.HrManager)
@@ -86,6 +92,7 @@ namespace LeaveManagement.DataAccess
         {
             return await _dbSet
                 .Include(lr => lr.Employee)
+                    .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
                 .Where(lr => lr.Status == status)
                 .OrderByDescending(lr => lr.CreatedDate)
@@ -96,6 +103,7 @@ namespace LeaveManagement.DataAccess
         {
             return await _dbSet
                 .Include(lr => lr.Employee)
+                    .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
                 .Where(lr => lr.StartDate <= endDate && lr.EndDate >= startDate)
                 .OrderByDescending(lr => lr.CreatedDate)

@@ -263,6 +263,9 @@ namespace LeaveManagement.Business.Services
                 DepartmentManagerName = leaveRequest.DepartmentManager != null 
                     ? $"{leaveRequest.DepartmentManager.FirstName} {leaveRequest.DepartmentManager.LastName}" 
                     : null,
+                DepartmentName = leaveRequest.Employee.Department != null 
+                    ? leaveRequest.Employee.Department.Name 
+                    : null,
                 HrManagerId = leaveRequest.HrManagerId,
                 HrManagerName = leaveRequest.HrManager != null 
                     ? $"{leaveRequest.HrManager.FirstName} {leaveRequest.HrManager.LastName}" 

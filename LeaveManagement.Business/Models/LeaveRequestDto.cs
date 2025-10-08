@@ -29,6 +29,7 @@ namespace LeaveManagement.Business.Models
         
         public int? DepartmentManagerId { get; set; }
         public string? DepartmentManagerName { get; set; }
+        public string? DepartmentName { get; set; }
         
         public int? HrManagerId { get; set; }
         public string? HrManagerName { get; set; }
