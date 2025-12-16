@@ -118,3 +118,11 @@ C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\obj\Debug\
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\obj\Debug\net8.0\LeaveManagement.API.pdb
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\obj\Debug\net8.0\LeaveManagement.API.genruntimeconfig.cache
 C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\obj\Debug\net8.0\ref\LeaveManagement.API.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\EPPlus.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\EPPlus.Interfaces.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\EPPlus.System.Drawing.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\Microsoft.IO.RecyclableMemoryStream.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\Microsoft.Win32.SystemEvents.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\System.Drawing.Common.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\runtimes\win\lib\net7.0\Microsoft.Win32.SystemEvents.dll
+C:\Users\mfyuzgul\Desktop\ik-izin-sistemi\backend\LeaveManagement.API\bin\Debug\net8.0\runtimes\win\lib\net7.0\System.Drawing.Common.dll

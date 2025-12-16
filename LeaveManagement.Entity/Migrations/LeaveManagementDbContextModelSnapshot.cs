@@ -99,6 +99,9 @@ namespace LeaveManagement.Entity.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSystemAdmin")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastLoginDate")
                         .HasColumnType("timestamp without time zone");
 
@@ -118,7 +121,7 @@ namespace LeaveManagement.Entity.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<int?>("RoleId")
+                    b.Property<int?>("TitleId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedDate")
@@ -127,6 +130,9 @@ namespace LeaveManagement.Entity.Migrations
                     b.Property<string>("Username")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("WorksOnSaturday")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -140,12 +146,279 @@ namespace LeaveManagement.Entity.Migrations
 
                     b.HasIndex("ManagerId");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("TitleId");
 
                     b.HasIndex("Username")
                         .IsUnique();
 
                     b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.EmployeeGoalCard", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("CreatedByEmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GoalCardTemplateId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByEmployeeId");
+
+                    b.HasIndex("GoalCardTemplateId");
+
+                    b.HasIndex("EmployeeId", "GoalCardTemplateId", "Year")
+                        .IsUnique();
+
+                    b.ToTable("EmployeeGoalCards");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.EmployeeGoalCardItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AchievementLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ActualCompletionDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("EmployeeGoalCardId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EmployeeNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("GoalCardItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ManagerNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeGoalCardId");
+
+                    b.HasIndex("GoalCardItemId");
+
+                    b.ToTable("EmployeeGoalCardItems");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalCardItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Goal")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("GoalCardTemplateId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GoalDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("GoalTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Target100Percent")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Target120Percent")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Target80Percent")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("TargetDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoalCardTemplateId");
+
+                    b.HasIndex("GoalTypeId");
+
+                    b.ToTable("GoalCardItems");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalCardTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedByEmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("TitleId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByEmployeeId");
+
+                    b.HasIndex("TitleId");
+
+                    b.HasIndex("DepartmentId", "TitleId", "IsActive")
+                        .IsUnique()
+                        .HasFilter("\"IsActive\" = true");
+
+                    b.ToTable("GoalCardTemplates");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GoalTypes");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.Holiday", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Year", "Date");
+
+                    b.ToTable("Holidays");
                 });
 
             modelBuilder.Entity("LeaveManagement.Entity.LeaveBalance", b =>
@@ -267,6 +540,9 @@ namespace LeaveManagement.Entity.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<bool>("DeductsFromBalance")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -288,6 +564,9 @@ namespace LeaveManagement.Entity.Migrations
                     b.Property<bool>("RequiresApproval")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("RequiresBalance")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("timestamp without time zone");
 
@@ -296,31 +575,13 @@ namespace LeaveManagement.Entity.Migrations
                     b.ToTable("LeaveTypes");
                 });
 
-            modelBuilder.Entity("LeaveManagement.Entity.Role", b =>
+            modelBuilder.Entity("LeaveManagement.Entity.Title", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("CanApproveLeaveRequests")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanManageDepartments")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanManageEmployees")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanManageLeaveTypes")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanManageSystemSettings")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanViewAllLeaveRequests")
-                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp without time zone");
@@ -332,13 +593,10 @@ namespace LeaveManagement.Entity.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsSystem")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("timestamp without time zone");
@@ -348,7 +606,7 @@ namespace LeaveManagement.Entity.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Roles");
+                    b.ToTable("Titles");
                 });
 
             modelBuilder.Entity("LeaveManagement.Entity.Department", b =>
@@ -373,16 +631,108 @@ namespace LeaveManagement.Entity.Migrations
                         .HasForeignKey("ManagerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("LeaveManagement.Entity.Role", "Role")
+                    b.HasOne("LeaveManagement.Entity.Title", "Title")
                         .WithMany()
-                        .HasForeignKey("RoleId")
+                        .HasForeignKey("TitleId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Department");
 
                     b.Navigation("Manager");
 
-                    b.Navigation("Role");
+                    b.Navigation("Title");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.EmployeeGoalCard", b =>
+                {
+                    b.HasOne("LeaveManagement.Entity.Employee", "CreatedByEmployee")
+                        .WithMany()
+                        .HasForeignKey("CreatedByEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LeaveManagement.Entity.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LeaveManagement.Entity.GoalCardTemplate", "GoalCardTemplate")
+                        .WithMany("EmployeeGoalCards")
+                        .HasForeignKey("GoalCardTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByEmployee");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("GoalCardTemplate");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.EmployeeGoalCardItem", b =>
+                {
+                    b.HasOne("LeaveManagement.Entity.EmployeeGoalCard", "EmployeeGoalCard")
+                        .WithMany("Items")
+                        .HasForeignKey("EmployeeGoalCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LeaveManagement.Entity.GoalCardItem", "GoalCardItem")
+                        .WithMany("EmployeeGoalCardItems")
+                        .HasForeignKey("GoalCardItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmployeeGoalCard");
+
+                    b.Navigation("GoalCardItem");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalCardItem", b =>
+                {
+                    b.HasOne("LeaveManagement.Entity.GoalCardTemplate", "GoalCardTemplate")
+                        .WithMany("Items")
+                        .HasForeignKey("GoalCardTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LeaveManagement.Entity.GoalType", "GoalType")
+                        .WithMany("GoalCardItems")
+                        .HasForeignKey("GoalTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoalCardTemplate");
+
+                    b.Navigation("GoalType");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalCardTemplate", b =>
+                {
+                    b.HasOne("LeaveManagement.Entity.Employee", "CreatedByEmployee")
+                        .WithMany()
+                        .HasForeignKey("CreatedByEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LeaveManagement.Entity.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LeaveManagement.Entity.Title", "Title")
+                        .WithMany()
+                        .HasForeignKey("TitleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByEmployee");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Title");
                 });
 
             modelBuilder.Entity("LeaveManagement.Entity.LeaveBalance", b =>
@@ -449,6 +799,28 @@ namespace LeaveManagement.Entity.Migrations
                     b.Navigation("LeaveRequests");
 
                     b.Navigation("Subordinates");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.EmployeeGoalCard", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalCardItem", b =>
+                {
+                    b.Navigation("EmployeeGoalCardItems");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalCardTemplate", b =>
+                {
+                    b.Navigation("EmployeeGoalCards");
+
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("LeaveManagement.Entity.GoalType", b =>
+                {
+                    b.Navigation("GoalCardItems");
                 });
 
             modelBuilder.Entity("LeaveManagement.Entity.LeaveType", b =>

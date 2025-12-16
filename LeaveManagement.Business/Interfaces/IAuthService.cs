@@ -11,6 +11,6 @@ namespace LeaveManagement.Business.Interfaces
         Task<EmployeeDto?> GetEmployeeByIdAsync(int id);
         Task<bool> UpdateEmployeeAsync(int id, UpdateEmployeeDto updateEmployeeDto);
         Task<bool> DeactivateEmployeeAsync(int id);
-        Task<List<Role>> GetRolesAsync();
+        Task<List<Title>> GetTitlesAsync();
     }
 }

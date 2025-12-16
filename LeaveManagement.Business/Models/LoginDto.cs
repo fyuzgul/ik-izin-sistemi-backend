@@ -49,7 +49,9 @@ namespace LeaveManagement.Business.Models
         [StringLength(255)]
         public string? Password { get; set; }
         
-        public int? RoleId { get; set; }
+        public int? TitleId { get; set; }
+        
+        public bool WorksOnSaturday { get; set; } = false;
         
         public bool IsActive { get; set; } = true;
     }
@@ -79,7 +81,9 @@ namespace LeaveManagement.Business.Models
         [StringLength(255)]
         public string? Password { get; set; }
         
-        public int? RoleId { get; set; }
+        public int? TitleId { get; set; }
+        
+        public bool WorksOnSaturday { get; set; } = false;
         
         public bool IsActive { get; set; } = true;
     }
@@ -97,8 +101,11 @@ namespace LeaveManagement.Business.Models
         public string DepartmentName { get; set; } = string.Empty;
         public string? Username { get; set; }
         public string? Password { get; set; }
-        public int? RoleId { get; set; }
-        public string RoleName { get; set; } = string.Empty;
+        public int? TitleId { get; set; }
+        public string TitleName { get; set; } = string.Empty;
+        public int? ManagerId { get; set; }
+        public string? ManagerName { get; set; }
+        public bool WorksOnSaturday { get; set; } = false;
         public bool IsActive { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? LastLoginDate { get; set; }

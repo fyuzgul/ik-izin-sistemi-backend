@@ -13,7 +13,13 @@ namespace LeaveManagement.Entity
         public DbSet<LeaveType> LeaveTypes { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<LeaveBalance> LeaveBalances { get; set; }
-        public DbSet<Role> Roles { get; set; }
+        public DbSet<Title> Titles { get; set; }
+        public DbSet<GoalType> GoalTypes { get; set; }
+        public DbSet<GoalCardTemplate> GoalCardTemplates { get; set; }
+        public DbSet<GoalCardItem> GoalCardItems { get; set; }
+        public DbSet<EmployeeGoalCard> EmployeeGoalCards { get; set; }
+        public DbSet<EmployeeGoalCardItem> EmployeeGoalCardItems { get; set; }
+        public DbSet<Holiday> Holidays { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,10 +46,10 @@ namespace LeaveManagement.Entity
                       .HasForeignKey(e => e.DepartmentId)
                       .OnDelete(DeleteBehavior.SetNull);
                 
-                // Role relationship
-                entity.HasOne(e => e.Role)
+                // Title relationship
+                entity.HasOne(e => e.Title)
                       .WithMany()
-                      .HasForeignKey(e => e.RoleId)
+                      .HasForeignKey(e => e.TitleId)
                       .OnDelete(DeleteBehavior.SetNull);
                 
                 // Unique constraints
@@ -123,11 +129,124 @@ namespace LeaveManagement.Entity
             });
 
 
-            // Role configurations
-            modelBuilder.Entity<Role>(entity =>
+            // Title configurations
+            modelBuilder.Entity<Title>(entity =>
             {
-                entity.HasKey(r => r.Id);
-                entity.HasIndex(r => r.Name).IsUnique();
+                entity.HasKey(t => t.Id);
+                entity.HasIndex(t => t.Name).IsUnique();
+            });
+
+            // GoalType configurations
+            modelBuilder.Entity<GoalType>(entity =>
+            {
+                entity.HasKey(gt => gt.Id);
+                entity.Property(gt => gt.Name).IsRequired().HasMaxLength(100);
+                entity.Property(gt => gt.Description).HasMaxLength(500);
+            });
+
+            // GoalCardTemplate configurations
+            modelBuilder.Entity<GoalCardTemplate>(entity =>
+            {
+                entity.HasKey(gct => gct.Id);
+                entity.Property(gct => gct.Name).IsRequired().HasMaxLength(200);
+                entity.Property(gct => gct.Description).HasMaxLength(500);
+                
+                entity.HasOne(gct => gct.Department)
+                      .WithMany()
+                      .HasForeignKey(gct => gct.DepartmentId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(gct => gct.Title)
+                      .WithMany()
+                      .HasForeignKey(gct => gct.TitleId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(gct => gct.CreatedByEmployee)
+                      .WithMany()
+                      .HasForeignKey(gct => gct.CreatedByEmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                // Unique constraint: Aynı departman ve pozisyon için tek bir aktif şablon olabilir
+                entity.HasIndex(gct => new { gct.DepartmentId, gct.TitleId, gct.IsActive })
+                      .IsUnique()
+                      .HasFilter("\"IsActive\" = true");
+            });
+
+            // GoalCardItem configurations
+            modelBuilder.Entity<GoalCardItem>(entity =>
+            {
+                entity.HasKey(gci => gci.Id);
+                entity.Property(gci => gci.Goal).IsRequired().HasMaxLength(500);
+                entity.Property(gci => gci.Target80Percent).HasMaxLength(200);
+                entity.Property(gci => gci.Target100Percent).HasMaxLength(200);
+                entity.Property(gci => gci.Target120Percent).HasMaxLength(200);
+                entity.Property(gci => gci.GoalDescription).HasMaxLength(1000);
+                
+                entity.HasOne(gci => gci.GoalCardTemplate)
+                      .WithMany(gct => gct.Items)
+                      .HasForeignKey(gci => gci.GoalCardTemplateId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasOne(gci => gci.GoalType)
+                      .WithMany(gt => gt.GoalCardItems)
+                      .HasForeignKey(gci => gci.GoalTypeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // EmployeeGoalCard configurations
+            modelBuilder.Entity<EmployeeGoalCard>(entity =>
+            {
+                entity.HasKey(egc => egc.Id);
+                entity.Property(egc => egc.Status).IsRequired().HasMaxLength(50);
+                
+                entity.HasOne(egc => egc.Employee)
+                      .WithMany()
+                      .HasForeignKey(egc => egc.EmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(egc => egc.GoalCardTemplate)
+                      .WithMany(gct => gct.EmployeeGoalCards)
+                      .HasForeignKey(egc => egc.GoalCardTemplateId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(egc => egc.CreatedByEmployee)
+                      .WithMany()
+                      .HasForeignKey(egc => egc.CreatedByEmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                // Unique constraint: Aynı çalışan için aynı yılda aynı şablondan tek bir kart olabilir
+                entity.HasIndex(egc => new { egc.EmployeeId, egc.GoalCardTemplateId, egc.Year })
+                      .IsUnique();
+            });
+
+            // EmployeeGoalCardItem configurations
+            modelBuilder.Entity<EmployeeGoalCardItem>(entity =>
+            {
+                entity.HasKey(egci => egci.Id);
+                entity.Property(egci => egci.AchievementLevel).HasMaxLength(50);
+                entity.Property(egci => egci.ManagerNotes).HasMaxLength(2000);
+                entity.Property(egci => egci.EmployeeNotes).HasMaxLength(2000);
+                
+                entity.HasOne(egci => egci.EmployeeGoalCard)
+                      .WithMany(egc => egc.Items)
+                      .HasForeignKey(egci => egci.EmployeeGoalCardId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasOne(egci => egci.GoalCardItem)
+                      .WithMany(gci => gci.EmployeeGoalCardItems)
+                      .HasForeignKey(egci => egci.GoalCardItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Holiday configurations
+            modelBuilder.Entity<Holiday>(entity =>
+            {
+                entity.HasKey(h => h.Id);
+                entity.Property(h => h.Name).IsRequired().HasMaxLength(200);
+                entity.Property(h => h.Description).HasMaxLength(500);
+                
+                // Index for faster queries
+                entity.HasIndex(h => new { h.Year, h.Date });
             });
 
             // Seed data

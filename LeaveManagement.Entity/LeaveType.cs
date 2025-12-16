@@ -19,6 +19,12 @@ namespace LeaveManagement.Entity
         
         public bool IsPaid { get; set; } = true;
         
+        // Indicates if this leave type requires checking employee's leave balance
+        public bool RequiresBalance { get; set; } = true;
+        
+        // Indicates if this leave type deducts from employee's leave balance
+        public bool DeductsFromBalance { get; set; } = true;
+        
         public bool IsActive { get; set; } = true;
         
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;

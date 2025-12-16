@@ -24,12 +24,28 @@ namespace LeaveManagement.DataAccess
 
         public async Task<IEnumerable<LeaveRequest>> GetPendingRequestsForDepartmentManagerAsync(int managerId)
         {
+            // Get manager's department
+            var context = (Entity.LeaveManagementDbContext)_context;
+            var manager = await context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Title)
+                .FirstOrDefaultAsync(e => e.Id == managerId);
+
+            if (manager == null || manager.DepartmentId == null || manager.IsSystemAdmin)
+                return new List<LeaveRequest>();
+
+            // Only Yönetici or Direktör can see pending requests
+            if (manager.Title == null || 
+                (manager.Title.Name != "Yönetici" && manager.Title.Name != "Direktör"))
+                return new List<LeaveRequest>();
+
+            // Get pending requests from employees in the same department
             return await _dbSet
                 .Include(lr => lr.Employee)
                     .ThenInclude(e => e.Department)
                 .Include(lr => lr.LeaveType)
                 .Include(lr => lr.DepartmentManager)
-                .Where(lr => lr.DepartmentManagerId == managerId && 
+                .Where(lr => lr.Employee.DepartmentId == manager.DepartmentId && 
                             lr.Status == LeaveRequestStatus.Pending)
                 .OrderByDescending(lr => lr.CreatedDate)
                 .ToListAsync();
@@ -37,6 +53,7 @@ namespace LeaveManagement.DataAccess
 
         public async Task<IEnumerable<LeaveRequest>> GetPendingRequestsForHrManagerAsync()
         {
+            // Get all requests approved by department manager, waiting for HR approval
             return await _dbSet
                 .Include(lr => lr.Employee)
                     .ThenInclude(e => e.Department)

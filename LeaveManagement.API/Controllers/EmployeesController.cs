@@ -1,18 +1,47 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using LeaveManagement.Business.Interfaces;
 using LeaveManagement.Business.Models;
+using LeaveManagement.API.Extensions;
+using LeaveManagement.DataAccess;
+using LeaveManagement.Entity;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace LeaveManagement.API.Controllers
 {
     [ApiController]
     [Route("api/employees")]
+    [Authorize]
     public class EmployeesController : ControllerBase
     {
         private readonly IEmployeeService _employeeService;
+        private readonly LeaveManagementDbContext _context;
 
-        public EmployeesController(IEmployeeService employeeService)
+        public EmployeesController(IEmployeeService employeeService, LeaveManagementDbContext context)
         {
             _employeeService = employeeService;
+            _context = context;
+        }
+
+        private async Task<bool> IsAdminOrHrManagerAsync()
+        {
+            var username = User.FindFirst(ClaimTypes.Name)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var isAdmin = username == "admin" || role == "Admin";
+            
+            if (isAdmin) return true;
+            
+            // Check if user is HR Manager (İnsan Kaynakları departmanının yöneticisi)
+            var employeeId = User.GetEmployeeId();
+            if (!employeeId.HasValue) return false;
+            
+            var hrDepartment = await _context.Departments
+                .FirstOrDefaultAsync(d => 
+                    EF.Functions.ILike(d.Name, "%İnsan Kaynakları%") || 
+                    EF.Functions.ILike(d.Name, "%Human Resources%"));
+            
+            return hrDepartment != null && hrDepartment.ManagerId == employeeId.Value;
         }
 
         [HttpGet]
@@ -20,6 +49,10 @@ namespace LeaveManagement.API.Controllers
         {
             try
             {
+                // Only Admin and HR Manager can see all employees
+                if (!await IsAdminOrHrManagerAsync())
+                    return Forbid("Sadece sistem admin veya İK Müdürü tüm çalışanları görebilir");
+                
                 var employees = await _employeeService.GetAllEmployeesAsync();
                 return Ok(employees);
             }

@@ -4,14 +4,14 @@ namespace LeaveManagement.API.Extensions
 {
     public static class ClaimsPrincipalExtensions
     {
-        public static int GetEmployeeId(this ClaimsPrincipal user)
+        public static int? GetEmployeeId(this ClaimsPrincipal user)
         {
             var employeeIdClaim = user.FindFirst("EmployeeId");
             if (employeeIdClaim != null && int.TryParse(employeeIdClaim.Value, out int employeeId))
             {
                 return employeeId;
             }
-            throw new UnauthorizedAccessException("Employee ID not found in token");
+            return null;
         }
 
         public static int GetUserId(this ClaimsPrincipal user)
@@ -28,6 +28,15 @@ namespace LeaveManagement.API.Extensions
         {
             var roleClaim = user.FindFirst(ClaimTypes.Role);
             return roleClaim?.Value ?? throw new UnauthorizedAccessException("Role not found in token");
+        }
+
+        public static bool IsSystemAdmin(this ClaimsPrincipal user)
+        {
+            var username = user.FindFirst(ClaimTypes.Name)?.Value;
+            var role = user.FindFirst(ClaimTypes.Role)?.Value;
+            
+            // System admin is identified by username "admin" or role "Admin"
+            return username == "admin" || role == "Admin";
         }
     }
 }

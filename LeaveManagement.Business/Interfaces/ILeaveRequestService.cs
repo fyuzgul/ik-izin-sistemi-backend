@@ -8,7 +8,7 @@ namespace LeaveManagement.Business.Interfaces
         Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(int id);
         Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByEmployeeIdAsync(int employeeId);
         Task<IEnumerable<LeaveRequestDto>> GetPendingRequestsForDepartmentManagerAsync(int managerId);
-        Task<IEnumerable<LeaveRequestDto>> GetPendingRequestsForHrManagerAsync();
+        Task<IEnumerable<LeaveRequestDto>> GetPendingRequestsForHrManagerAsync(int? hrManagerId = null);
         Task<LeaveRequestDto> CreateLeaveRequestAsync(CreateLeaveRequestDto createDto);
         Task<bool> UpdateLeaveRequestStatusAsync(int id, UpdateLeaveRequestStatusDto updateDto, int approverId, bool isHrManager = false);
         Task<bool> CancelLeaveRequestAsync(int id, int employeeId);

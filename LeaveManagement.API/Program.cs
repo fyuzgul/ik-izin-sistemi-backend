@@ -47,6 +47,9 @@ builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
     builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IEmployeeService, LeaveManagement.Business.Services.EmployeeService>();
     builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IAuthService, LeaveManagement.Business.Services.AuthService>();
     builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IDepartmentService, LeaveManagement.Business.Services.DepartmentService>();
+    builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IGoalCardService, LeaveManagement.Business.Services.GoalCardService>();
+    builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IHolidayService, LeaveManagement.Business.Services.HolidayService>();
+    builder.Services.AddScoped<LeaveManagement.Business.Interfaces.IExcelImportService, LeaveManagement.Business.Services.ExcelImportService>();
 
 // CORS
 builder.Services.AddCors(options =>

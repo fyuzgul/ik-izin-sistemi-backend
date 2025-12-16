@@ -1,6 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using LeaveManagement.Business.Interfaces;
 using LeaveManagement.Business.Models;
+using LeaveManagement.API.Extensions;
+using LeaveManagement.DataAccess;
+using LeaveManagement.Entity;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace LeaveManagement.API.Controllers
 {
@@ -9,10 +15,32 @@ namespace LeaveManagement.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly LeaveManagementDbContext _context;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, LeaveManagementDbContext context)
         {
             _authService = authService;
+            _context = context;
+        }
+
+        private async Task<bool> IsAdminOrHrManagerAsync()
+        {
+            var username = User.FindFirst(ClaimTypes.Name)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var isAdmin = username == "admin" || role == "Admin";
+            
+            if (isAdmin) return true;
+            
+            // Check if user is HR Manager (İnsan Kaynakları departmanının yöneticisi)
+            var employeeId = User.GetEmployeeId();
+            if (!employeeId.HasValue) return false;
+            
+            var hrDepartment = await _context.Departments
+                .FirstOrDefaultAsync(d => 
+                    EF.Functions.ILike(d.Name, "%İnsan Kaynakları%") || 
+                    EF.Functions.ILike(d.Name, "%Human Resources%"));
+            
+            return hrDepartment != null && hrDepartment.ManagerId == employeeId.Value;
         }
 
         [HttpPost("login")]
@@ -54,10 +82,15 @@ namespace LeaveManagement.API.Controllers
         }
 
         [HttpGet("employees")]
+        [Authorize]
         public async Task<IActionResult> GetAllEmployees()
         {
             try
             {
+                // Only Admin and HR Manager can see all employees
+                if (!await IsAdminOrHrManagerAsync())
+                    return Forbid("Sadece sistem admin veya İK Müdürü tüm çalışanları görebilir");
+                
                 var employees = await _authService.GetAllEmployeesAsync();
                 return Ok(employees);
             }
@@ -124,13 +157,54 @@ namespace LeaveManagement.API.Controllers
             }
         }
 
-        [HttpGet("roles")]
-        public async Task<IActionResult> GetRoles()
+        [HttpGet("titles")]
+        public async Task<IActionResult> GetTitles()
         {
             try
             {
-                var roles = await _authService.GetRolesAsync();
-                return Ok(roles);
+                var titles = await _authService.GetTitlesAsync();
+                return Ok(titles);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Sunucu hatası", error = ex.Message });
+            }
+        }
+
+        [HttpPost("create-admin")]
+        public async Task<IActionResult> CreateAdmin()
+        {
+            try
+            {
+                // Check if admin already exists
+                var adminExists = await _authService.GetAllEmployeesAsync();
+                if (adminExists.Any(e => e.Username == "admin"))
+                {
+                    return BadRequest(new { message = "Admin kullanıcısı zaten mevcut" });
+                }
+
+                // Create admin employee
+                var adminDto = new CreateEmployeeDto
+                {
+                    FirstName = "Sistem",
+                    LastName = "Admin",
+                    Email = "admin@company.com",
+                    EmployeeNumber = "SYS001",
+                    Username = "admin",
+                    Password = "Admin123!",
+                    TitleId = 1, // Yönetici
+                    DepartmentId = 1, // İnsan Kaynakları (should exist from DbInitializer)
+                    IsActive = true,
+                    HireDate = DateTime.UtcNow
+                };
+
+                var result = await _authService.CreateEmployeeAsync(adminDto);
+                if (result == null)
+                {
+                    return BadRequest(new { message = "Admin kullanıcısı oluşturulamadı" });
+                }
+
+                return Ok(new { message = "Admin kullanıcısı başarıyla oluşturuldu", employee = result });
             }
             catch (Exception ex)
             {

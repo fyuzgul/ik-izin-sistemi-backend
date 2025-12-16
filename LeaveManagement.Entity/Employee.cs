@@ -32,8 +32,8 @@ namespace LeaveManagement.Entity
         [StringLength(255)]
         public string? PasswordHash { get; set; }
         
-        public int? RoleId { get; set; }
-        public Role? Role { get; set; }
+        public int? TitleId { get; set; }
+        public Title? Title { get; set; }
         
         public DateTime? LastLoginDate { get; set; }
         
@@ -51,7 +51,13 @@ namespace LeaveManagement.Entity
         
         public List<LeaveBalance> LeaveBalances { get; set; } = new List<LeaveBalance>();
         
+        // Indicates if employee works on Saturdays (used for leave day calculation)
+        public bool WorksOnSaturday { get; set; } = false;
+        
         public bool IsActive { get; set; } = true;
+        
+        // System admin flag - system admin is not part of any department and not shown in employee lists
+        public bool IsSystemAdmin { get; set; } = false;
         
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedDate { get; set; }

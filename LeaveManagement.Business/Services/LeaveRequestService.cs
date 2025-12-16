@@ -10,11 +10,13 @@ namespace LeaveManagement.Business.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILeaveRequestRepository _leaveRequestRepository;
+        private readonly LeaveManagementDbContext _context;
 
-        public LeaveRequestService(IUnitOfWork unitOfWork, ILeaveRequestRepository leaveRequestRepository)
+        public LeaveRequestService(IUnitOfWork unitOfWork, ILeaveRequestRepository leaveRequestRepository, LeaveManagementDbContext context)
         {
             _unitOfWork = unitOfWork;
             _leaveRequestRepository = leaveRequestRepository;
+            _context = context;
         }
 
         public async Task<IEnumerable<LeaveRequestDto>> GetAllLeaveRequestsAsync()
@@ -41,22 +43,38 @@ namespace LeaveManagement.Business.Services
             return leaveRequests.Select(MapToDto);
         }
 
-        public async Task<IEnumerable<LeaveRequestDto>> GetPendingRequestsForHrManagerAsync()
+        public async Task<IEnumerable<LeaveRequestDto>> GetPendingRequestsForHrManagerAsync(int? hrManagerId = null)
         {
             var leaveRequests = await _leaveRequestRepository.GetPendingRequestsForHrManagerAsync();
+            
+            // If hrManagerId is provided, verify that the caller is the HR manager
+            if (hrManagerId.HasValue)
+            {
+                var hrManagerIdFromDb = await GetHrManagerIdAsync();
+                if (hrManagerIdFromDb != hrManagerId.Value)
+                {
+                    // Caller is not the HR manager, return empty list
+                    return new List<LeaveRequestDto>();
+                }
+            }
+            
             return leaveRequests.Select(MapToDto);
         }
 
         public async Task<LeaveRequestDto> CreateLeaveRequestAsync(CreateLeaveRequestDto createDto)
         {
             // Validate employee exists and get fresh data from database
-            var employee = await _unitOfWork.Employees.FirstOrDefaultAsync(e => e.Id == createDto.EmployeeId);
+            var employee = await _context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Title)
+                .FirstOrDefaultAsync(e => e.Id == createDto.EmployeeId);
             if (employee == null)
                 throw new ArgumentException("Employee not found");
             
-            // Validate that employee has a manager assigned
-            if (employee.ManagerId == null)
-                throw new InvalidOperationException("Çalışanın bir yöneticisi atanmamış. Lütfen İK departmanı ile iletişime geçin.");
+            // Find department manager (Yönetici or Direktör in the same department)
+            var departmentManager = await FindDepartmentManagerAsync(employee.DepartmentId);
+            if (departmentManager == null)
+                throw new InvalidOperationException("Departmanınızda onay yetkisine sahip bir yönetici bulunamadı. Lütfen İK departmanı ile iletişime geçin.");
 
             // Validate leave type exists
             var leaveType = await _unitOfWork.LeaveTypes.GetByIdAsync(createDto.LeaveTypeId);
@@ -68,16 +86,41 @@ namespace LeaveManagement.Business.Services
             if (hasOverlapping)
                 throw new InvalidOperationException("Overlapping leave request exists");
 
-            // Check leave balance
+            // Calculate total days excluding weekends and holidays based on employee's work schedule
+            var totalDays = await CalculateWorkingDaysAsync(createDto.StartDate, createDto.EndDate, employee.WorksOnSaturday);
             var currentYear = DateTime.Now.Year;
-            var leaveBalance = await _unitOfWork.LeaveBalances.FirstOrDefaultAsync(lb => 
-                lb.EmployeeId == createDto.EmployeeId && 
-                lb.LeaveTypeId == createDto.LeaveTypeId && 
-                lb.Year == currentYear);
 
-            var totalDays = (createDto.EndDate - createDto.StartDate).Days + 1;
-            if (leaveBalance == null || leaveBalance.RemainingDays < totalDays)
-                throw new InvalidOperationException("Insufficient leave balance");
+            // Check leave balance if required for this leave type
+            if (leaveType.RequiresBalance)
+            {
+                var leaveBalance = await _unitOfWork.LeaveBalances.FirstOrDefaultAsync(lb => 
+                    lb.EmployeeId == createDto.EmployeeId && 
+                    lb.LeaveTypeId == createDto.LeaveTypeId && 
+                    lb.Year == currentYear);
+
+                if (leaveBalance == null || leaveBalance.RemainingDays < totalDays)
+                    throw new InvalidOperationException("Yetersiz izin bakiyesi. Bu izin türü için yeterli bakiyeniz bulunmamaktadır.");
+            }
+            else
+            {
+                // For leave types that don't require balance (Ücretsiz İzin)
+                // Check if employee has annual leave balance - if yes, they cannot request unpaid leave
+                var isUnpaidLeave = leaveType.Name == "Ücretsiz İzin";
+                if (isUnpaidLeave)
+                {
+                    var annualLeaveType = await _unitOfWork.LeaveTypes.FirstOrDefaultAsync(lt => lt.Name == "Yıllık İzin");
+                    if (annualLeaveType != null)
+                    {
+                        var annualLeaveBalance = await _unitOfWork.LeaveBalances.FirstOrDefaultAsync(lb => 
+                            lb.EmployeeId == createDto.EmployeeId && 
+                            lb.LeaveTypeId == annualLeaveType.Id && 
+                            lb.Year == currentYear);
+
+                        if (annualLeaveBalance != null && annualLeaveBalance.RemainingDays > 0)
+                            throw new InvalidOperationException("Yıllık izin hakkınız bulunduğu için ücretsiz izin talep edemezsiniz.");
+                    }
+                }
+            }
 
             // Create leave request
             var leaveRequest = new LeaveRequest
@@ -89,7 +132,7 @@ namespace LeaveManagement.Business.Services
                 TotalDays = totalDays,
                 Reason = createDto.Reason,
                 Status = LeaveRequestStatus.Pending,
-                DepartmentManagerId = employee.ManagerId,
+                DepartmentManagerId = departmentManager.Id,
                 HrManagerId = await GetHrManagerIdAsync()
             };
 
@@ -107,11 +150,23 @@ namespace LeaveManagement.Business.Services
             if (leaveRequest == null)
                 return false;
 
+            // Get approver employee with title
+            var approver = await _context.Employees
+                .Include(e => e.Title)
+                .FirstOrDefaultAsync(e => e.Id == approverId);
+            
+            if (approver == null || approver.Title == null)
+                throw new UnauthorizedAccessException("Onay yetkiniz bulunmamaktadır.");
+
             // Validate approval flow
             if (isHrManager)
             {
+                // HR Manager must be Direktör or Yönetici
+                if (approver.Title.Name != "Direktör" && approver.Title.Name != "Yönetici")
+                    throw new UnauthorizedAccessException("Sadece Yönetici veya Direktör ünvanına sahip kişiler onaylayabilir.");
+
                 if (leaveRequest.Status != LeaveRequestStatus.ApprovedByDepartmentManager)
-                    throw new InvalidOperationException("Leave request must be approved by department manager first");
+                    throw new InvalidOperationException("İzin talebi önce departman yöneticisi tarafından onaylanmalıdır.");
                 
                 leaveRequest.HrManagerId = approverId;
                 leaveRequest.Status = updateDto.Status == LeaveRequestStatus.ApprovedByHrManager 
@@ -120,19 +175,32 @@ namespace LeaveManagement.Business.Services
                 leaveRequest.HrManagerApprovalDate = DateTime.UtcNow;
                 leaveRequest.HrManagerComments = updateDto.Comments;
 
-                // If approved by HR, update leave balance
+                // If approved by HR, update leave balance only for leave types that deduct from balance
                 if (updateDto.Status == LeaveRequestStatus.ApprovedByHrManager)
                 {
-                    await UpdateLeaveBalanceAsync(leaveRequest.EmployeeId, leaveRequest.LeaveTypeId, leaveRequest.TotalDays);
+                    // Check if this leave type deducts from balance
+                    if (leaveRequest.LeaveType.DeductsFromBalance)
+                    {
+                        await UpdateLeaveBalanceAsync(leaveRequest.EmployeeId, leaveRequest.LeaveTypeId, leaveRequest.TotalDays);
+                    }
                 }
             }
             else
             {
-                if (leaveRequest.Status != LeaveRequestStatus.Pending)
-                    throw new InvalidOperationException("Leave request is not in pending status");
+                // Department Manager must be Yönetici or Direktör
+                if (approver.Title.Name != "Yönetici" && approver.Title.Name != "Direktör")
+                    throw new UnauthorizedAccessException("Sadece Yönetici veya Direktör ünvanına sahip kişiler onaylayabilir.");
 
+                if (leaveRequest.Status != LeaveRequestStatus.Pending)
+                    throw new InvalidOperationException("İzin talebi bekleyen durumda değil.");
+
+                // Check if approver is the department manager of the request
                 if (leaveRequest.DepartmentManagerId != approverId)
-                    throw new UnauthorizedAccessException("Only department manager can approve this request");
+                    throw new UnauthorizedAccessException("Bu izin talebini sadece departman yöneticisi onaylayabilir.");
+
+                // Verify approver is in the same department as the employee
+                if (approver.DepartmentId != leaveRequest.Employee.DepartmentId)
+                    throw new UnauthorizedAccessException("Sadece aynı departmandaki yönetici onaylayabilir.");
 
                 leaveRequest.Status = updateDto.Status == LeaveRequestStatus.ApprovedByDepartmentManager 
                     ? LeaveRequestStatus.ApprovedByDepartmentManager 
@@ -224,9 +292,87 @@ namespace LeaveManagement.Business.Services
 
         private async Task<int?> GetHrManagerIdAsync()
         {
-            // This is a simple implementation - in real scenario, you might have a specific HR department or role
-            var hrDepartment = await _unitOfWork.Departments.FirstOrDefaultAsync(d => d.Name.Contains("Human Resources"));
-            return hrDepartment?.ManagerId;
+            // Find HR Manager - İnsan Kaynakları departmanının ManagerId'sine sahip kişi
+            // Bu kişi departman yöneticisi olarak atanmış olmalı
+            var hrDepartment = await _context.Departments
+                .FirstOrDefaultAsync(d => d.Name.Contains("İnsan Kaynakları") || d.Name.Contains("Human Resources"));
+            
+            if (hrDepartment == null || hrDepartment.ManagerId == null)
+                return null;
+
+            // Get the HR Department Manager (exclude system admin)
+            var hrManager = await _context.Employees
+                .Include(e => e.Title)
+                .FirstOrDefaultAsync(e => 
+                    e.Id == hrDepartment.ManagerId.Value && 
+                    e.IsActive &&
+                    !e.IsSystemAdmin && // Exclude system admin
+                    e.Title != null && 
+                    (e.Title.Name == "Direktör" || e.Title.Name == "Yönetici"));
+
+            return hrManager?.Id;
+        }
+
+        private async Task<Employee?> FindDepartmentManagerAsync(int? departmentId)
+        {
+            if (departmentId == null)
+                return null;
+
+            // Find Yönetici or Direktör in the same department (exclude system admin)
+            var manager = await _context.Employees
+                .Include(e => e.Title)
+                .FirstOrDefaultAsync(e => 
+                    e.DepartmentId == departmentId && 
+                    e.IsActive &&
+                    !e.IsSystemAdmin && // Exclude system admin
+                    e.Title != null && 
+                    (e.Title.Name == "Yönetici" || e.Title.Name == "Direktör"));
+
+            return manager;
+        }
+
+        private async Task<int> CalculateWorkingDaysAsync(DateTime startDate, DateTime endDate, bool worksOnSaturday)
+        {
+            // Get all active holidays for the date range
+            var holidays = await _context.Holidays
+                .Where(h => h.IsActive && 
+                           h.Date.Date >= startDate.Date && 
+                           h.Date.Date <= endDate.Date)
+                .Select(h => h.Date.Date)
+                .ToListAsync();
+
+            int workingDays = 0;
+            DateTime currentDate = startDate.Date;
+            DateTime end = endDate.Date;
+
+            while (currentDate <= end)
+            {
+                // Sunday is always a non-working day
+                if (currentDate.DayOfWeek == DayOfWeek.Sunday)
+                {
+                    currentDate = currentDate.AddDays(1);
+                    continue;
+                }
+
+                // Saturday is a non-working day only if employee doesn't work on Saturdays
+                if (currentDate.DayOfWeek == DayOfWeek.Saturday && !worksOnSaturday)
+                {
+                    currentDate = currentDate.AddDays(1);
+                    continue;
+                }
+
+                // Check if current date is a holiday
+                if (holidays.Contains(currentDate))
+                {
+                    currentDate = currentDate.AddDays(1);
+                    continue;
+                }
+
+                workingDays++;
+                currentDate = currentDate.AddDays(1);
+            }
+
+            return workingDays;
         }
 
         private async Task UpdateLeaveBalanceAsync(int employeeId, int leaveTypeId, int usedDays)

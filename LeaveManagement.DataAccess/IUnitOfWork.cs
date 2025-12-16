@@ -7,7 +7,13 @@ namespace LeaveManagement.DataAccess
         IRepository<Entity.LeaveType> LeaveTypes { get; }
         IRepository<Entity.LeaveRequest> LeaveRequests { get; }
         IRepository<Entity.LeaveBalance> LeaveBalances { get; }
-        IRepository<Entity.Role> Roles { get; }
+        IRepository<Entity.Title> Titles { get; }
+        IRepository<Entity.GoalType> GoalTypes { get; }
+        IRepository<Entity.GoalCardTemplate> GoalCardTemplates { get; }
+        IRepository<Entity.GoalCardItem> GoalCardItems { get; }
+        IRepository<Entity.EmployeeGoalCard> EmployeeGoalCards { get; }
+        IRepository<Entity.EmployeeGoalCardItem> EmployeeGoalCardItems { get; }
+        IRepository<Entity.Holiday> Holidays { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

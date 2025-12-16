@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using LeaveManagement.DataAccess;
 using LeaveManagement.Entity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using LeaveManagement.API.Extensions;
 
 namespace LeaveManagement.API.Controllers
 {
@@ -12,10 +14,32 @@ namespace LeaveManagement.API.Controllers
     public class LeaveBalancesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly LeaveManagementDbContext _context;
 
-        public LeaveBalancesController(IUnitOfWork unitOfWork)
+        public LeaveBalancesController(IUnitOfWork unitOfWork, LeaveManagementDbContext context)
         {
             _unitOfWork = unitOfWork;
+            _context = context;
+        }
+
+        private async Task<bool> IsAdminOrHrManagerAsync()
+        {
+            var username = User.FindFirst(ClaimTypes.Name)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var isAdmin = username == "admin" || role == "Admin";
+            
+            if (isAdmin) return true;
+            
+            // Check if user is HR Manager (İnsan Kaynakları departmanının yöneticisi)
+            var employeeId = User.GetEmployeeId();
+            if (!employeeId.HasValue) return false;
+            
+            var hrDepartment = await _context.Departments
+                .FirstOrDefaultAsync(d => 
+                    EF.Functions.ILike(d.Name, "%İnsan Kaynakları%") || 
+                    EF.Functions.ILike(d.Name, "%Human Resources%"));
+            
+            return hrDepartment != null && hrDepartment.ManagerId == employeeId.Value;
         }
 
         [HttpGet("employee/{employeeId}")]
@@ -92,11 +116,13 @@ namespace LeaveManagement.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,İK Müdürü")]
         public async Task<ActionResult<LeaveBalanceDto>> Create([FromBody] CreateLeaveBalanceDto createDto)
         {
             try
             {
+                if (!await IsAdminOrHrManagerAsync())
+                    return Forbid("Sadece sistem admin veya İK Müdürü izin hakkı tanımlayabilir");
+                
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
@@ -132,11 +158,13 @@ namespace LeaveManagement.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,İK Müdürü")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateLeaveBalanceDto updateDto)
         {
             try
             {
+                if (!await IsAdminOrHrManagerAsync())
+                    return Forbid("Sadece sistem admin veya İK Müdürü izin hakkı güncelleyebilir");
+                
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
@@ -159,11 +187,13 @@ namespace LeaveManagement.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,İK Müdürü")]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
+                if (!await IsAdminOrHrManagerAsync())
+                    return Forbid("Sadece sistem admin veya İK Müdürü izin hakkı silebilir");
+                
                 var leaveBalance = await _unitOfWork.LeaveBalances.GetByIdAsync(id);
                 if (leaveBalance == null)
                     return NotFound("İzin hakkı bulunamadı");
@@ -184,11 +214,13 @@ namespace LeaveManagement.API.Controllers
         }
 
         [HttpGet("all")]
-        [Authorize(Roles = "Admin,İK Müdürü")]
         public async Task<ActionResult<IEnumerable<LeaveBalanceDto>>> GetAll()
         {
             try
             {
+                if (!await IsAdminOrHrManagerAsync())
+                    return Forbid("Sadece sistem admin veya İK Müdürü tüm izin haklarını görebilir");
+                
                 var currentYear = DateTime.Now.Year;
                 var balances = await _unitOfWork.LeaveBalances
                     .FindAsync(lb => lb.Year == currentYear);

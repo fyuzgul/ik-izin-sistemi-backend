@@ -27,13 +27,16 @@ namespace LeaveManagement.Business.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong"));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            // Admin check: if username is "admin", set role as "Admin"
+            var roleName = employee.Username == "admin" ? "Admin" : (employee.Title?.Name ?? "");
+            
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, employee.Id.ToString()),
                 new Claim(ClaimTypes.Name, employee.Username ?? ""),
                 new Claim(ClaimTypes.Email, employee.Email),
-                new Claim(ClaimTypes.Role, employee.Role?.Name ?? ""),
-                new Claim("RoleId", employee.RoleId?.ToString() ?? "0"),
+                new Claim(ClaimTypes.Role, roleName),
+                new Claim("TitleId", employee.TitleId?.ToString() ?? "0"),
                 new Claim("EmployeeId", employee.Id.ToString()),
                 new Claim("DepartmentId", employee.DepartmentId?.ToString() ?? "0"),
                 new Claim("DepartmentName", employee.Department?.Name ?? ""),
@@ -56,7 +59,7 @@ namespace LeaveManagement.Business.Services
         {
             var employee = await _context.Employees
                 .Include(e => e.Department)
-                .Include(e => e.Role)
+                .Include(e => e.Title)
                 .FirstOrDefaultAsync(e => e.Username == loginDto.Username && e.IsActive);
 
             if (employee == null || employee.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, employee.PasswordHash))
@@ -99,9 +102,9 @@ namespace LeaveManagement.Business.Services
                 return null;
             }
 
-            // Get role to check if this is a manager
-            var role = await _context.Roles.FindAsync(createEmployeeDto.RoleId);
-            var isManager = role != null && (role.Name == "Yönetici" || role.Name == "İK Müdürü" || role.Name == "Admin");
+            // Get title to check if this is a manager
+            var title = await _context.Titles.FindAsync(createEmployeeDto.TitleId);
+            var isManager = title != null && (title.Name == "Yönetici" || title.Name == "İK Müdürü" || title.Name == "Direktör");
 
             // Get department to set manager automatically
             int? managerId = null;
@@ -127,7 +130,8 @@ namespace LeaveManagement.Business.Services
                 ManagerId = managerId, // Automatically set from department's manager for regular employees
                 Username = createEmployeeDto.Username,
                 PasswordHash = !string.IsNullOrEmpty(createEmployeeDto.Password) ? BCrypt.Net.BCrypt.HashPassword(createEmployeeDto.Password) : null,
-                RoleId = createEmployeeDto.RoleId,
+                TitleId = createEmployeeDto.TitleId,
+                WorksOnSaturday = createEmployeeDto.WorksOnSaturday,
                 IsActive = createEmployeeDto.IsActive,
                 CreatedDate = DateTime.UtcNow
             };
@@ -151,10 +155,12 @@ namespace LeaveManagement.Business.Services
 
         public async Task<List<EmployeeDto>> GetAllEmployeesAsync()
         {
+            // Exclude system admin from employee lists
             return await _context.Employees
                 .Include(e => e.Department)
-                .Include(e => e.Role)
-                .Where(e => e.IsActive)
+                .Include(e => e.Title)
+                .Include(e => e.Manager)
+                .Where(e => e.IsActive && !e.IsSystemAdmin)
                 .Select(e => new EmployeeDto
                 {
                     Id = e.Id,
@@ -167,8 +173,11 @@ namespace LeaveManagement.Business.Services
                     DepartmentId = e.DepartmentId,
                     DepartmentName = e.Department != null ? e.Department.Name : "",
                     Username = e.Username,
-                    RoleId = e.RoleId,
-                    RoleName = e.Role != null ? e.Role.Name : "",
+                    TitleId = e.TitleId,
+                    TitleName = e.Title != null ? e.Title.Name : "",
+                    ManagerId = e.ManagerId,
+                    ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
+                    WorksOnSaturday = e.WorksOnSaturday,
                     IsActive = e.IsActive,
                     CreatedDate = e.CreatedDate,
                     LastLoginDate = e.LastLoginDate
@@ -180,7 +189,8 @@ namespace LeaveManagement.Business.Services
         {
             var employee = await _context.Employees
                 .Include(e => e.Department)
-                .Include(e => e.Role)
+                .Include(e => e.Title)
+                .Include(e => e.Manager)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (employee == null)
@@ -198,8 +208,11 @@ namespace LeaveManagement.Business.Services
                 DepartmentId = employee.DepartmentId,
                 DepartmentName = employee.Department != null ? employee.Department.Name : "",
                 Username = employee.Username,
-                RoleId = employee.RoleId,
-                RoleName = employee.Role != null ? employee.Role.Name : "",
+                TitleId = employee.TitleId,
+                TitleName = employee.Title != null ? employee.Title.Name : "",
+                ManagerId = employee.ManagerId,
+                ManagerName = employee.Manager != null ? $"{employee.Manager.FirstName} {employee.Manager.LastName}" : null,
+                WorksOnSaturday = employee.WorksOnSaturday,
                 IsActive = employee.IsActive,
                 CreatedDate = employee.CreatedDate,
                 LastLoginDate = employee.LastLoginDate
@@ -241,7 +254,8 @@ namespace LeaveManagement.Business.Services
             employee.PhoneNumber = updateEmployeeDto.PhoneNumber;
             employee.DepartmentId = updateEmployeeDto.DepartmentId;
             employee.Username = updateEmployeeDto.Username;
-            employee.RoleId = updateEmployeeDto.RoleId;
+            employee.TitleId = updateEmployeeDto.TitleId;
+            employee.WorksOnSaturday = updateEmployeeDto.WorksOnSaturday;
             employee.IsActive = updateEmployeeDto.IsActive;
             employee.UpdatedDate = DateTime.UtcNow;
 
@@ -271,10 +285,10 @@ namespace LeaveManagement.Business.Services
             return true;
         }
 
-        public async Task<List<Role>> GetRolesAsync()
+        public async Task<List<Title>> GetTitlesAsync()
         {
-            return await _context.Roles
-                .Where(r => r.IsActive)
+            return await _context.Titles
+                .Where(t => t.IsActive)
                 .ToListAsync();
         }
     }

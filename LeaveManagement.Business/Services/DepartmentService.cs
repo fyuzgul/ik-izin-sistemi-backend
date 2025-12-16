@@ -78,9 +78,6 @@ namespace LeaveManagement.Business.Services
             _context.Departments.Add(department);
             await _context.SaveChangesAsync();
 
-            // Create department-specific roles
-            await CreateDepartmentRolesAsync(department.Id, department.Name);
-
             return await GetByIdAsync(department.Id);
         }
 
@@ -110,18 +107,15 @@ namespace LeaveManagement.Business.Services
 
             await _context.SaveChangesAsync();
 
-            // Update department-specific roles if name changed
-            if (oldName != department.Name)
-            {
-                await UpdateDepartmentRolesAsync(department.Id, oldName, department.Name);
-            }
-
             return true;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var department = await _context.Departments.FindAsync(id);
+            var department = await _context.Departments
+                .Include(d => d.Employees)
+                .FirstOrDefaultAsync(d => d.Id == id);
+            
             if (department == null)
                 return false;
 
@@ -129,8 +123,11 @@ namespace LeaveManagement.Business.Services
             if (department.IsSystem)
                 throw new InvalidOperationException("Sistem departmanları silinemez");
 
+            // Clear manager reference when department is deleted
+            department.ManagerId = null;
             department.IsActive = false;
             department.UpdatedDate = DateTime.UtcNow;
+            
             await _context.SaveChangesAsync();
 
             return true;
@@ -162,75 +159,5 @@ namespace LeaveManagement.Business.Services
             return true;
         }
 
-        private async Task CreateDepartmentRolesAsync(int departmentId, string departmentName)
-        {
-            try
-            {
-                // Create Department Manager role
-                var departmentManagerRole = new Role
-                {
-                    Name = $"{departmentName}Manager",
-                    Description = $"{departmentName} Departman Yöneticisi",
-                    CanManageEmployees = false,
-                    CanManageDepartments = false,
-                    CanManageLeaveTypes = false,
-                    CanApproveLeaveRequests = true,
-                    CanViewAllLeaveRequests = false,
-                    CanManageSystemSettings = false,
-                    IsActive = true,
-                    CreatedDate = DateTime.UtcNow
-                };
-
-                // Create Department Employee role
-                var departmentEmployeeRole = new Role
-                {
-                    Name = $"{departmentName}Employee",
-                    Description = $"{departmentName} Çalışanı",
-                    CanManageEmployees = false,
-                    CanManageDepartments = false,
-                    CanManageLeaveTypes = false,
-                    CanApproveLeaveRequests = false,
-                    CanViewAllLeaveRequests = false,
-                    CanManageSystemSettings = false,
-                    IsActive = true,
-                    CreatedDate = DateTime.UtcNow
-                };
-
-                _context.Roles.AddRange(departmentManagerRole, departmentEmployeeRole);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                // Log the error but don't fail the department creation
-                Console.WriteLine($"Error creating department roles: {ex.Message}");
-            }
-        }
-
-        private async Task UpdateDepartmentRolesAsync(int departmentId, string oldName, string newName)
-        {
-            // Update Department Manager role
-            var departmentManagerRole = await _context.Roles
-                .FirstOrDefaultAsync(r => r.Name == $"{oldName}Manager");
-
-            if (departmentManagerRole != null)
-            {
-                departmentManagerRole.Name = $"{newName}Manager";
-                departmentManagerRole.Description = $"{newName} Departman Yöneticisi";
-                departmentManagerRole.UpdatedDate = DateTime.UtcNow;
-            }
-
-            // Update Department Employee role
-            var departmentEmployeeRole = await _context.Roles
-                .FirstOrDefaultAsync(r => r.Name == $"{oldName}Employee");
-
-            if (departmentEmployeeRole != null)
-            {
-                departmentEmployeeRole.Name = $"{newName}Employee";
-                departmentEmployeeRole.Description = $"{newName} Çalışanı";
-                departmentEmployeeRole.UpdatedDate = DateTime.UtcNow;
-            }
-
-            await _context.SaveChangesAsync();
-        }
     }
 }

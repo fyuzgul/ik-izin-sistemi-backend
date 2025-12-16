@@ -16,7 +16,8 @@ namespace LeaveManagement.Business.Services
 
         public async Task<IEnumerable<EmployeeDto>> GetAllEmployeesAsync()
         {
-            var employees = await _unitOfWork.Employees.GetAllAsync();
+            // Exclude system admin from employee lists
+            var employees = await _unitOfWork.Employees.FindAsync(e => !e.IsSystemAdmin);
             var result = new List<EmployeeDto>();
 
             foreach (var employee in employees)
@@ -35,7 +36,8 @@ namespace LeaveManagement.Business.Services
 
         public async Task<IEnumerable<EmployeeDto>> GetEmployeesByDepartmentIdAsync(int departmentId)
         {
-            var employees = await _unitOfWork.Employees.FindAsync(e => e.DepartmentId == departmentId && e.IsActive);
+            // Exclude system admin from department employee lists
+            var employees = await _unitOfWork.Employees.FindAsync(e => e.DepartmentId == departmentId && e.IsActive && !e.IsSystemAdmin);
             var result = new List<EmployeeDto>();
 
             foreach (var employee in employees)
@@ -54,7 +56,8 @@ namespace LeaveManagement.Business.Services
             if (manager?.DepartmentId == null)
                 return new List<EmployeeDto>();
 
-            var employees = await _unitOfWork.Employees.FindAsync(e => e.DepartmentId == manager.DepartmentId && e.IsActive && e.Id != managerId);
+            // Exclude system admin from subordinates list
+            var employees = await _unitOfWork.Employees.FindAsync(e => e.DepartmentId == manager.DepartmentId && e.IsActive && e.Id != managerId && !e.IsSystemAdmin);
             var result = new List<EmployeeDto>();
 
             foreach (var employee in employees)
@@ -78,7 +81,8 @@ namespace LeaveManagement.Business.Services
                 DepartmentId = employeeDto.DepartmentId,
                 Username = employeeDto.Username,
                 PasswordHash = !string.IsNullOrEmpty(employeeDto.Password) ? BCrypt.Net.BCrypt.HashPassword(employeeDto.Password) : null,
-                RoleId = employeeDto.RoleId,
+                TitleId = employeeDto.TitleId,
+                WorksOnSaturday = employeeDto.WorksOnSaturday,
                 IsActive = employeeDto.IsActive,
                 CreatedDate = DateTime.UtcNow
             };
@@ -106,7 +110,8 @@ namespace LeaveManagement.Business.Services
             employee.HireDate = DateTime.SpecifyKind(employeeDto.HireDate, DateTimeKind.Utc);
             employee.DepartmentId = employeeDto.DepartmentId;
             employee.Username = employeeDto.Username;
-            employee.RoleId = employeeDto.RoleId;
+            employee.TitleId = employeeDto.TitleId;
+            employee.WorksOnSaturday = employeeDto.WorksOnSaturday;
             employee.IsActive = employeeDto.IsActive;
             employee.UpdatedDate = DateTime.UtcNow;
 
@@ -170,10 +175,13 @@ namespace LeaveManagement.Business.Services
                 ? await _unitOfWork.Departments.GetByIdAsync(employee.DepartmentId.Value) 
                 : null;
 
-            var role = employee.RoleId.HasValue 
-                ? await _unitOfWork.Roles.GetByIdAsync(employee.RoleId.Value) 
+            var title = employee.TitleId.HasValue 
+                ? await _unitOfWork.Titles.GetByIdAsync(employee.TitleId.Value) 
                 : null;
 
+            var manager = employee.ManagerId.HasValue
+                ? await _unitOfWork.Employees.GetByIdAsync(employee.ManagerId.Value)
+                : null;
 
             return new EmployeeDto
             {
@@ -187,8 +195,11 @@ namespace LeaveManagement.Business.Services
                 DepartmentId = employee.DepartmentId,
                 DepartmentName = department?.Name ?? string.Empty,
                 Username = employee.Username,
-                RoleId = employee.RoleId,
-                RoleName = role?.Name ?? string.Empty,
+                TitleId = employee.TitleId,
+                TitleName = title?.Name ?? string.Empty,
+                ManagerId = employee.ManagerId,
+                ManagerName = manager != null ? $"{manager.FirstName} {manager.LastName}" : null,
+                WorksOnSaturday = employee.WorksOnSaturday,
                 IsActive = employee.IsActive,
                 CreatedDate = employee.CreatedDate,
                 LastLoginDate = employee.LastLoginDate
@@ -200,7 +211,8 @@ namespace LeaveManagement.Business.Services
             var currentYear = DateTime.Now.Year;
             var leaveTypes = await _unitOfWork.LeaveTypes.GetAllAsync();
 
-            foreach (var leaveType in leaveTypes.Where(lt => lt.IsActive))
+            // Only create balances for leave types that require balance tracking (e.g., Annual Leave)
+            foreach (var leaveType in leaveTypes.Where(lt => lt.IsActive && lt.RequiresBalance))
             {
                 var leaveBalance = new LeaveBalance
                 {
