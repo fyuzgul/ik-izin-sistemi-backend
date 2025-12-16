@@ -35,12 +35,36 @@ namespace LeaveManagement.API.Controllers
             var employeeId = User.GetEmployeeId();
             if (!employeeId.HasValue) return false;
             
-            var hrDepartment = await _context.Departments
-                .FirstOrDefaultAsync(d => 
-                    EF.Functions.ILike(d.Name, "%İnsan Kaynakları%") || 
-                    EF.Functions.ILike(d.Name, "%Human Resources%"));
+            // Get current employee with department and title
+            var employee = await _context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Title)
+                .FirstOrDefaultAsync(e => e.Id == employeeId.Value);
             
-            return hrDepartment != null && hrDepartment.ManagerId == employeeId.Value;
+            if (employee == null || employee.Department == null || employee.Title == null)
+                return false;
+            
+            // Check if employee is in HR department
+            var deptName = employee.Department.Name;
+            var isHrDept = EF.Functions.ILike(deptName, "%İnsan Kaynakları%") || 
+                          EF.Functions.ILike(deptName, "%Human Resources%");
+            
+            if (!isHrDept) return false;
+            
+            // Check if employee has manager title (Yönetici or Direktör)
+            var isManagerTitle = employee.Title.Name == "Yönetici" || employee.Title.Name == "Direktör";
+            
+            // If department has ManagerId set, check if it matches
+            // Otherwise, if employee is in HR dept with manager title, they are HR Manager
+            if (employee.Department.ManagerId.HasValue)
+            {
+                return employee.Department.ManagerId.Value == employeeId.Value;
+            }
+            else
+            {
+                // If ManagerId is not set, but employee is in HR dept with manager title, they are HR Manager
+                return isManagerTitle;
+            }
         }
 
         [HttpPost("login")]

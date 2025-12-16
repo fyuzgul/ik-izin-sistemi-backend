@@ -34,14 +34,64 @@ namespace LeaveManagement.API.Controllers
             
             // Check if user is HR Manager (İnsan Kaynakları departmanının yöneticisi)
             var employeeId = User.GetEmployeeId();
-            if (!employeeId.HasValue) return false;
+            if (!employeeId.HasValue)
+            {
+                Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: EmployeeId not found in token");
+                return false;
+            }
             
-            var hrDepartment = await _context.Departments
-                .FirstOrDefaultAsync(d => 
-                    EF.Functions.ILike(d.Name, "%İnsan Kaynakları%") || 
-                    EF.Functions.ILike(d.Name, "%Human Resources%"));
+            // Get current employee with department and title
+            var employee = await _context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Title)
+                .FirstOrDefaultAsync(e => e.Id == employeeId.Value);
             
-            return hrDepartment != null && hrDepartment.ManagerId == employeeId.Value;
+            if (employee == null)
+            {
+                Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: Employee {employeeId.Value} not found");
+                return false;
+            }
+            
+            if (employee.Department == null)
+            {
+                Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: Employee {employeeId.Value} has no department");
+                return false;
+            }
+            
+            if (employee.Title == null)
+            {
+                Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: Employee {employeeId.Value} has no title");
+                return false;
+            }
+            
+            // Check if employee is in HR department
+            var deptName = employee.Department.Name;
+            var isHrDept = EF.Functions.ILike(deptName, "%İnsan Kaynakları%") || 
+                          EF.Functions.ILike(deptName, "%Human Resources%");
+            
+            Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: Employee {employeeId.Value}, Dept: {deptName}, IsHrDept: {isHrDept}, Title: {employee.Title.Name}");
+            
+            if (!isHrDept) return false;
+            
+            // Check if employee has manager title (Yönetici or Direktör)
+            var isManagerTitle = employee.Title.Name == "Yönetici" || employee.Title.Name == "Direktör";
+            
+            Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: IsManagerTitle: {isManagerTitle}, DeptManagerId: {employee.Department.ManagerId}");
+            
+            // If department has ManagerId set, check if it matches
+            // Otherwise, if employee is in HR dept with manager title, they are HR Manager
+            if (employee.Department.ManagerId.HasValue)
+            {
+                var result = employee.Department.ManagerId.Value == employeeId.Value;
+                Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: ManagerId check result: {result}");
+                return result;
+            }
+            else
+            {
+                // If ManagerId is not set, but employee is in HR dept with manager title, they are HR Manager
+                Console.WriteLine($"[DEBUG] IsAdminOrHrManagerAsync: ManagerId not set, using title check: {isManagerTitle}");
+                return isManagerTitle;
+            }
         }
 
         [HttpGet]
